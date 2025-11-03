@@ -1,3 +1,7 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
@@ -6,6 +10,13 @@ const withPWA = require('next-pwa')({
   fallbacks: {
     document: '/offline',
   },
+  // Add better chunk loading configuration
+  buildExcludes: [
+    /chunks\/pages\/_app/,
+    /chunks\/framework/,
+    /chunks\/main-app/,
+    /chunks\/webpack/,
+  ],
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
@@ -150,6 +161,47 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+      };
+    }
+
+    // Fix chunk loading issues
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        ...config.optimization.splitChunks,
+        chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
+        cacheGroups: {
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: -10,
+            chunks: 'all',
+          },
+        },
+      },
+    };
+
+    return config;
+  },
+    // Add proper output configuration for PWA
+  output: 'standalone',
+  // Turbopack configuration (empty to silence warning)
+  turbopack: {},
 }
 
-module.exports = withPWA(nextConfig)
+module.exports = withBundleAnalyzer(withPWA(nextConfig))

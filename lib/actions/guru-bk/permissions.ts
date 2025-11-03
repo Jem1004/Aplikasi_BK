@@ -11,6 +11,21 @@ import {
   ENTITY_TYPES,
 } from '@/lib/audit/audit-logger';
 
+// Type for SchoolInfo
+type SchoolInfo = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string | null;
+  principalName: string;
+  principalNip: string;
+  logoPath: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 // Validation schemas
 const createPermissionSchema = z.object({
   studentId: z.string().min(1, 'Siswa harus dipilih'),
@@ -57,6 +72,7 @@ export type PermissionPrintData = {
   destination: string | null;
   issuedBy: string;
   issuedAt: string;
+  schoolInfo: SchoolInfo | null;
 };
 
 /**
@@ -144,6 +160,21 @@ function formatDate(dateString: string): string {
 }
 
 /**
+ * Fetch school info from database
+ * Returns null if not found (backward compatibility)
+ * Requirements: 6.1, 6.2, 10.1, 10.4
+ */
+async function fetchSchoolInfo(): Promise<SchoolInfo | null> {
+  try {
+    const schoolInfo = await prisma.schoolInfo.findFirst();
+    return schoolInfo;
+  } catch (error) {
+    console.error('Fetch school info error:', error);
+    return null;
+  }
+}
+
+/**
  * Create a new permission record
  * Guru BK only
  * Returns permission data with print information
@@ -221,6 +252,9 @@ export async function createPermission(
       },
     });
 
+    // Fetch school info for print data
+    const schoolInfo = await fetchSchoolInfo();
+
     // Prepare print data
     const printData: PermissionPrintData = {
       id: permission.id,
@@ -240,6 +274,7 @@ export async function createPermission(
         dateStyle: 'long',
         timeStyle: 'short',
       }),
+      schoolInfo,
     };
 
     // Get session for audit log
@@ -393,6 +428,90 @@ export async function getPermissionById(
     };
   } catch (error) {
     console.error('Get permission by ID error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
+ * Get permission print data by ID
+ * Includes school info for receipt printing
+ * Guru BK only
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 10.1, 10.4
+ */
+export async function getPermissionPrintData(
+  id: string
+): Promise<ActionResponse<PermissionPrintData>> {
+  try {
+    // Check authorization
+    const authCheck = await checkGuruBKAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    // Fetch permission with related data
+    const permission = await prisma.permission.findUnique({
+      where: { id },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+        issuer: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!permission) {
+      return {
+        success: false,
+        error: 'Data izin tidak ditemukan',
+      };
+    }
+
+    // Fetch school info (returns null if not found - backward compatibility)
+    const schoolInfo = await fetchSchoolInfo();
+
+    // Generate permission number
+    const permissionNumber = await generatePermissionNumber(permission.createdAt);
+
+    // Format permission data for printing
+    const printData: PermissionPrintData = {
+      id: permission.id,
+      permissionNumber,
+      studentName: permission.student.user.fullName,
+      nis: permission.student.nis,
+      className: permission.student.class?.name || '-',
+      permissionType:
+        permission.permissionType === 'MASUK' ? 'Izin Masuk' : 'Izin Keluar',
+      reason: permission.reason,
+      date: formatDate(permission.permissionDate.toISOString()),
+      startTime: formatTime(permission.startTime.toISOString().split('T')[1]),
+      endTime: permission.endTime
+        ? formatTime(permission.endTime.toISOString().split('T')[1])
+        : null,
+      destination: permission.destination || null,
+      issuedBy: permission.issuer.user.fullName,
+      issuedAt: permission.createdAt.toLocaleString('id-ID', {
+        dateStyle: 'long',
+        timeStyle: 'short',
+      }),
+      schoolInfo,
+    };
+
+    return {
+      success: true,
+      data: printData,
+    };
+  } catch (error) {
+    console.error('Get permission print data error:', error);
     return {
       success: false,
       error: 'Terjadi kesalahan. Silakan coba lagi',

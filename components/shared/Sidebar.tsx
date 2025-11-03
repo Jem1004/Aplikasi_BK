@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Book,
+  LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -161,6 +163,7 @@ const navigationByRole: Record<string, NavItem[]> = {
 
 export function Sidebar({ role, isOpen = true, onClose, isMinimized = false, onToggleMinimized }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const navItems = navigationByRole[role] || [];
 
   return (
@@ -178,7 +181,7 @@ export function Sidebar({ role, isOpen = true, onClose, isMinimized = false, onT
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-full border-r border-gray-200/60 bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out md:relative md:z-20 md:h-full md:translate-x-0",
+          "fixed left-0 top-0 z-40 h-full border-r border-gray-200/60 bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out md:relative md:z-20 md:h-full md:translate-x-0 flex flex-col",
           isMinimized ? "w-16" : "w-72",
           isOpen ? "translate-x-0 shadow-2xl md:shadow-lg" : "-translate-x-full"
         )}
@@ -312,20 +315,79 @@ export function Sidebar({ role, isOpen = true, onClose, isMinimized = false, onT
           </nav>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className={cn("hidden md:block border-t border-gray-200/30 bg-white/50 backdrop-blur-sm", isMinimized ? "px-2 py-3" : "px-6 py-4")}>
-          <div className={cn("flex items-center", isMinimized ? "justify-center" : "justify-between")}>
+        {/* User Section - Paling Bawah Sidebar */}
+        <div className={cn(
+          "border-t border-gray-200/30 bg-white/90 backdrop-blur-md shadow-lg transition-all duration-300",
+          isMinimized ? "px-2 py-3" : "px-4 py-4"
+        )}>
+          <div className="flex flex-col gap-3">
+            {/* User Info */}
+            <div className={cn("flex items-center", isMinimized ? "justify-center" : "gap-3")}>
+              <div className="relative">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
+                  <span className="text-white font-semibold text-sm">
+                    {session?.user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "U"}
+                  </span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white animate-pulse" />
+              </div>
+
+              {!isMinimized && session?.user && (
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {session.user.name}
+                    </p>
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  </div>
+                  <span className={cn(
+                    "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+                    role === "ADMIN" ? "bg-purple-100 text-purple-700" :
+                    role === "GURU_BK" ? "bg-blue-100 text-blue-700" :
+                    role === "WALI_KELAS" ? "bg-green-100 text-green-700" :
+                    "bg-orange-100 text-orange-700"
+                  )}>
+                    {role === "ADMIN" ? "Administrator" :
+                     role === "GURU_BK" ? "Guru BK" :
+                     role === "WALI_KELAS" ? "Wali Kelas" : "Siswa"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* User Status Label */}
             {!isMinimized && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-lg">
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs text-gray-600 font-medium">Sistem Online</span>
+                <span className="text-xs font-medium text-green-700">Sedang Aktif</span>
               </div>
             )}
-            <div className="text-xs text-gray-400">
-              v1.0.0
+
+            {/* Logout Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "w-full bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 border-gray-200",
+                isMinimized ? "h-9 w-9 p-0 mx-auto justify-center" : "h-9 px-4"
+              )}
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              title={isMinimized ? "Sign Out" : undefined}
+            >
+              <LogOut className={cn(isMinimized ? "h-4 w-4" : "h-4 w-4 mr-2")} />
+              {!isMinimized && <span className="text-sm font-medium">Sign Out</span>}
+            </Button>
+
+            {/* Version info */}
+            <div className={cn(
+              "text-xs text-gray-400 text-center opacity-60",
+              isMinimized ? "hidden" : "block"
+            )}>
+              Aplikasi BK v1.0.0
             </div>
           </div>
         </div>
+
       </aside>
     </>
   );

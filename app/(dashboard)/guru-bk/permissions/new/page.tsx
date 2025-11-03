@@ -20,7 +20,7 @@ const PermissionForm = dynamic(() => import('@/components/guru-bk/PermissionForm
   ssr: false
 });
 
-const PermissionPrintView = dynamic(() => import('@/components/guru-bk/PermissionPrintView').then(mod => ({ default: mod.PermissionPrintView })), {
+const PermissionReceiptView = dynamic(() => import('@/components/guru-bk/PermissionReceiptView').then(mod => ({ default: mod.PermissionReceiptView })), {
   loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>,
   ssr: false
 });
@@ -92,7 +92,7 @@ export default function NewPermissionPage() {
 
       {/* Print Dialog */}
       {printData && (
-        <PermissionPrintView printData={printData} onClose={handleClosePrint} />
+        <PermissionReceiptView printData={printData} onClose={handleClosePrint} />
       )}
     </div>
   );

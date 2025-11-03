@@ -34,6 +34,7 @@ export const authConfig: NextAuthConfig = {
           const validatedFields = loginSchema.safeParse(credentials);
 
           if (!validatedFields.success) {
+            console.warn('Invalid credentials format:', validatedFields.error.errors);
             return null;
           }
 
@@ -56,6 +57,7 @@ export const authConfig: NextAuthConfig = {
           });
 
           if (!user) {
+            console.log('User not found for identifier:', identifier);
             return null;
           }
 
@@ -63,10 +65,12 @@ export const authConfig: NextAuthConfig = {
           const isPasswordValid = await compare(password, user.passwordHash);
 
           if (!isPasswordValid) {
+            console.log('Invalid password for user:', identifier);
             return null;
           }
 
           // Return user object with necessary fields
+          console.log('User authenticated successfully:', user.email);
           return {
             id: user.id,
             email: user.email,
@@ -84,6 +88,7 @@ export const authConfig: NextAuthConfig = {
   ],
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -109,6 +114,9 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 60 * 60, // 1 hour
+  },
+  jwt: {
     maxAge: 60 * 60, // 1 hour
   },
   cookies: {

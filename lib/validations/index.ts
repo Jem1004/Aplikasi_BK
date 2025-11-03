@@ -8,3 +8,4 @@ export * from './journal';
 export * from './permission';
 export * from './appointment';
 export * from './profile';
+export * from './school-info';

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   role: string;
-  navbar: React.ReactNode;
+  navbar?: React.ReactNode; // Optional for future use
 }
 
 export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps) {
@@ -47,14 +46,23 @@ export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps
           onToggleMinimized={() => setSidebarMinimized(!sidebarMinimized)}
         />
 
-        {/* Main content area with header */}
+        {/* Main content area without header for minimalis design */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Navbar - positioned above main content */}
-          <header className="relative z-30">
-            <div onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {navbar}
-            </div>
-          </header>
+          {/* Mobile menu toggle button - only visible on mobile */}
+          <div className="md:hidden relative z-30 bg-white border-b border-gray-200/60 p-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <div className="h-6 w-6 flex flex-col justify-center gap-1">
+                <div className="h-0.5 w-6 bg-gray-600 rounded-full"></div>
+                <div className="h-0.5 w-6 bg-gray-600 rounded-full"></div>
+                <div className="h-0.5 w-6 bg-gray-600 rounded-full"></div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">Menu</span>
+            </button>
+          </div>
 
           {/* Main content */}
           <main

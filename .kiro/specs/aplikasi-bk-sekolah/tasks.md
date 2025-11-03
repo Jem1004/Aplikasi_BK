@@ -617,7 +617,7 @@ Implementation plan ini memecah pembangunan Aplikasi Bimbingan Konseling (BK) Se
     - Lazy load modal dialogs and print components
     - Review bundle size and identify large components for splitting
     - _Requirements: 10.1, 10.2, 10.3_
-  - [-] 22.4 Analyze and optimize bundle size
+  - [x] 22.4 Analyze and optimize bundle size
     - Install and run @next/bundle-analyzer
     - Review and remove unused dependencies from package.json
     - Optimize images with Next.js Image component where applicable

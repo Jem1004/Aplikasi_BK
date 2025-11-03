@@ -5,6 +5,9 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
+  // Note: Rate limiting moved to server action level to avoid headers scope issues
+  // Middleware rate limiting is limited by Next.js constraints
+
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/'];
   const isPublicRoute = publicRoutes.includes(pathname);

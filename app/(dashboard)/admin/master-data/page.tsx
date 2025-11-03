@@ -1,10 +1,17 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, School, AlertTriangle } from 'lucide-react';
+import { Calendar, School, AlertTriangle, Building2 } from 'lucide-react';
 
 export default function MasterDataPage() {
   const masterDataSections = [
+    {
+      title: 'Informasi Sekolah',
+      description: 'Kelola informasi dan logo sekolah',
+      icon: Building2,
+      href: '/admin/master-data/school-info',
+      color: 'text-purple-600',
+    },
     {
       title: 'Tahun Ajaran',
       description: 'Kelola data tahun ajaran sekolah',

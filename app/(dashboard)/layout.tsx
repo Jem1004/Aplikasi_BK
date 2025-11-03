@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
-import { DashboardLayout as DashboardLayoutComponent } from "@/components/shared/DashboardLayout";
-import { Navbar } from "@/components/shared/Navbar";
-import { InstallPrompt } from "@/components/shared/InstallPrompt";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { DashboardLayoutWrapper } from "@/components/shared/DashboardLayoutWrapper";
 
 export default async function DashboardLayout({
   children,
@@ -16,11 +15,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <>
-      <DashboardLayoutComponent role={session.user.role} navbar={<Navbar />}>
+    <ErrorBoundary>
+      <DashboardLayoutWrapper role={session.user.role}>
         {children}
-      </DashboardLayoutComponent>
-      <InstallPrompt />
-    </>
+      </DashboardLayoutWrapper>
+    </ErrorBoundary>
   );
 }

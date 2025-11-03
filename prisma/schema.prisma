@@ -340,3 +340,20 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// School Information Model
+model SchoolInfo {
+  id            String   @id @default(uuid())
+  name          String   @db.VarChar(200)
+  address       String   @db.VarChar(500)
+  phone         String   @db.VarChar(20)
+  email         String   @db.VarChar(100)
+  website       String?  @db.VarChar(100)
+  principalName String   @map("principal_name") @db.VarChar(100)
+  principalNip  String   @map("principal_nip") @db.VarChar(18)
+  logoPath      String?  @map("logo_path") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("school_info")
+}

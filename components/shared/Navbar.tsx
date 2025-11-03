@@ -1,4 +1,7 @@
-import { auth, signOut } from "@/lib/auth/auth";
+'use client';
+
+import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,13 +20,21 @@ interface NavbarProps {
   onMenuClick?: () => void;
 }
 
-async function handleSignOut() {
-  "use server";
-  await signOut({ redirectTo: "/login" });
-}
+export function Navbar({ onMenuClick }: NavbarProps) {
+  const { data: session, status } = useSession();
 
-export async function Navbar({ onMenuClick }: NavbarProps) {
-  const session = await auth();
+  if (status === 'loading') {
+    return (
+      <header className="sticky top-0 z-40 w-full border-b border-gray-200/60 bg-white/95 backdrop-blur-sm shadow-sm">
+        <div className="flex h-16 items-center gap-4 px-4 md:px-6">
+          <div className="flex-1" />
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   if (!session?.user) {
     return null;
@@ -145,16 +156,15 @@ export async function Navbar({ onMenuClick }: NavbarProps) {
               </DropdownMenuItem>
               <InstallButton />
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <form action={handleSignOut} className="w-full">
-                  <button type="submit" className="flex w-full items-center gap-3 py-3 px-4 cursor-pointer hover:bg-red-50 transition-colors text-red-600">
-                    <LogOut className="h-4 w-4" />
-                    <div className="flex-1 text-left">
-                      <p className="text-sm font-medium">Keluar</p>
-                      <p className="text-xs opacity-70">Sign out dari akun</p>
-                    </div>
-                  </button>
-                </form>
+              <DropdownMenuItem
+                className="gap-3 py-3 px-4 cursor-pointer hover:bg-red-50 transition-colors text-red-600"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut className="h-4 w-4" />
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium">Keluar</p>
+                  <p className="text-xs opacity-70">Sign out dari akun</p>
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

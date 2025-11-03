@@ -6,6 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
+  // Create School Info
+  console.log('Creating school info...');
+  const schoolInfo = await prisma.schoolInfo.create({
+    data: {
+      name: 'SMA Negeri 1 Jakarta',
+      address: 'Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta 10110',
+      phone: '021-5551234',
+      email: 'info@sman1jakarta.sch.id',
+      website: 'https://www.sman1jakarta.sch.id',
+      principalName: 'Dr. Ahmad Suryadi, M.Pd',
+      principalNip: '196501011990031001'
+    }
+  });
+  console.log(`✓ Created school info: ${schoolInfo.name}`);
+
   // Create Academic Year
   console.log('Creating academic year...');
   const academicYear = await prisma.academicYear.create({
