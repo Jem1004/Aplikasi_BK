@@ -75,6 +75,24 @@ export async function getSchoolInfo(): Promise<ActionResponse<SchoolInfo | null>
 }
 
 /**
+ * Get school info for public access (all roles can access)
+ * Requirements: 1.1, 1.2, 1.5
+ */
+export async function getSchoolInfoPublic(): Promise<ActionResponse<SchoolInfo | null>> {
+  try {
+    // No authorization check - public access for all authenticated users
+
+    // Fetch school info (should only be one record)
+    const schoolInfo = await prisma.schoolInfo.findFirst();
+
+    return createSuccessResponse(schoolInfo);
+  } catch (error) {
+    logError(error, { action: 'getSchoolInfoPublic', resource: 'school_info' });
+    return createErrorResponse(mapErrorToMessage(error));
+  }
+}
+
+/**
  * Create or update school info
  * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 7.1, 7.2, 7.4, 7.5
  */

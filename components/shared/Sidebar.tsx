@@ -318,26 +318,37 @@ export function Sidebar({
             </div>
           )}
 
-          {/* School Info in footer when not minimized */}
+          {/* School Info in footer when not minimized - available for all roles */}
           {!isMinimized && schoolInfo && (
-            <div className="mb-4 p-3 rounded-xl bg-green-50/50 border border-green-200/30 min-h-[80px] max-h-[120px] overflow-hidden transition-all duration-300">
+            <div className="mb-4 p-3 rounded-xl bg-green-50/50 border border-green-200/30 min-h-[90px] max-h-[140px] overflow-hidden transition-all duration-300 group hover:bg-green-100/50 hover:border-green-300/50 hover:shadow-sm">
               <div className="flex items-start gap-2 mb-2">
-                <School className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs font-semibold text-green-800 leading-tight">Informasi Sekolah</p>
+                <School className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0 group-hover:text-green-700 transition-colors" />
+                <p className="text-xs font-semibold text-green-800 leading-tight group-hover:text-green-900 transition-colors">
+                  Informasi Sekolah
+                </p>
               </div>
               <div className="space-y-1">
                 <p
-                  className="text-xs text-gray-600 font-medium leading-tight break-words hyphens-auto"
+                  className="text-xs text-gray-700 font-medium leading-tight break-words hyphens-auto"
                   title={schoolInfo.name}
                 >
                   {schoolInfo.name}
                 </p>
                 <p
-                  className="text-xs text-gray-500 leading-tight break-words hyphens-auto line-clamp-2"
+                  className="text-xs text-gray-600 leading-tight break-words hyphens-auto line-clamp-2"
                   title={schoolInfo.address}
                 >
                   {schoolInfo.address}
                 </p>
+                {schoolInfo.phone && (
+                  <p
+                    className="text-xs text-gray-500 leading-tight flex items-center gap-1"
+                    title={schoolInfo.phone}
+                  >
+                    <span className="h-3 w-3 rounded-full bg-green-200"></span>
+                    {schoolInfo.phone}
+                  </p>
+                )}
               </div>
             </div>
           )}

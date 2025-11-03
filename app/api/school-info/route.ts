@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSchoolInfo } from '@/lib/actions/admin/school-info';
+import { getSchoolInfoPublic } from '@/lib/actions/admin/school-info';
 
 export async function GET() {
   try {
-    const result = await getSchoolInfo();
+    const result = await getSchoolInfoPublic();
 
     if (!result.success) {
       return NextResponse.json(
