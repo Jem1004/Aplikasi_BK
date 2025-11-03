@@ -39,6 +39,39 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
+  // Check if user must change password (except on change password pages)
+  if (session && session.user.mustChangePassword) {
+    const changePasswordPaths = [
+      '/admin/settings',
+      '/guru-bk/settings',
+      '/wali-kelas/settings',
+      '/siswa/profile',
+    ];
+    
+    const isOnChangePasswordPage = changePasswordPaths.some(path => 
+      pathname.startsWith(path)
+    );
+    
+    if (!isOnChangePasswordPage) {
+      let settingsUrl = '/';
+      switch (session.user.role) {
+        case 'ADMIN':
+          settingsUrl = '/admin/settings';
+          break;
+        case 'GURU_BK':
+          settingsUrl = '/guru-bk/settings';
+          break;
+        case 'WALI_KELAS':
+          settingsUrl = '/wali-kelas/settings';
+          break;
+        case 'SISWA':
+          settingsUrl = '/siswa/profile';
+          break;
+      }
+      return NextResponse.redirect(new URL(settingsUrl, req.url));
+    }
+  }
+
   // Role-based route protection
   if (session) {
     const userRole = session.user.role;

@@ -8,6 +8,7 @@ declare module 'next-auth' {
       role: Role;
       teacherId: string | null;
       studentId: string | null;
+      mustChangePassword: boolean;
     } & DefaultSession['user'];
   }
 
@@ -16,6 +17,7 @@ declare module 'next-auth' {
     role: Role;
     teacherId: string | null;
     studentId: string | null;
+    mustChangePassword: boolean;
   }
 }
 
@@ -25,5 +27,6 @@ declare module 'next-auth/jwt' {
     role: Role;
     teacherId: string | null;
     studentId: string | null;
+    mustChangePassword: boolean;
   }
 }

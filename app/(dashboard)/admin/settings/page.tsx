@@ -25,6 +25,9 @@ const ChangePasswordForm = dynamic(
 import { User } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+
 export default async function AdminSettingsPage() {
   const session = await auth();
 
@@ -40,6 +43,16 @@ export default async function AdminSettingsPage() {
           Kelola pengaturan akun Anda
         </p>
       </div>
+
+      {session.user.mustChangePassword && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Perhatian!</strong> Anda harus mengganti password sebelum dapat mengakses fitur lain.
+            Password Anda telah direset oleh administrator.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

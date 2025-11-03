@@ -95,3 +95,146 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Safe area insets for mobile devices */
+.safe-inset-top { padding-top: env(safe-area-inset-top); }
+.safe-inset-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-inset-left { padding-left: env(safe-area-inset-left); }
+.safe-inset-right { padding-right: env(safe-area-inset-right); }
+
+.pt-safe-inset-top { padding-top: env(safe-area-inset-top); }
+.pb-safe-inset-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe-inset-left { padding-left: env(safe-area-inset-left); }
+.pr-safe-inset-right { padding-right: env(safe-area-inset-right); }
+
+.h-safe-inset-top { height: env(safe-area-inset-top); }
+.h-safe-inset-bottom { height: env(safe-area-inset-bottom); }
+.min-h-safe-inset-top { min-height: env(safe-area-inset-top); }
+.min-h-safe-inset-bottom { min-height: env(safe-area-inset-bottom); }
+
+/* Touch-friendly utilities */
+.touch-manipulation { touch-action: manipulation; }
+
+/* Better mobile scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Mobile viewport fixes */
+@supports (height: 100dvh) {
+  .h-screen-dynamic { height: 100dvh; }
+  .min-h-screen-dynamic { min-height: 100dvh; }
+}
+
+/* Responsive breakpoints improvements */
+@media (max-width: 640px) {
+  .mobile-optimized {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 768px) {
+  .tablet-optimized {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* Animation performance for mobile */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Better focus styles for mobile */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+}
+
+/* Mobile card shadows */
+.mobile-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+/* Sticky positioning for mobile headers */
+.mobile-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* Enhanced mobile sidebar animations */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+/* Mobile-specific animation performance */
+@media (max-width: 768px) {
+  .sidebar-mobile-open {
+    animation: slideInFromLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar-mobile-close {
+    animation: slideOutToLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Reduce motion on mobile for better performance */
+  .mobile-reduced-motion {
+    animation-duration: 0.15s !important;
+  }
+}
+
+/* Better touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-touch-feedback:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+    transition: all 0.1s ease-out;
+  }
+}
+
+/* Prevent rubber-band scrolling on mobile */
+.mobile-sidebar-overflow {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Enhanced backdrop for mobile */
+.mobile-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Better safe area handling */
+@supports (padding: max(0px)) {
+  .mobile-safe-padding {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}

@@ -12,6 +12,7 @@ export const AUDIT_ACTIONS = {
   USER_LOGIN: 'USER_LOGIN',
   USER_LOGOUT: 'USER_LOGOUT',
   USER_PASSWORD_CHANGED: 'USER_PASSWORD_CHANGED',
+  USER_PASSWORD_RESET: 'USER_PASSWORD_RESET',
 
   // Violation actions
   VIOLATION_CREATED: 'VIOLATION_CREATED',
@@ -255,4 +256,11 @@ export function sanitizeForAudit(data: Record<string, any>): Record<string, any>
   });
   
   return sanitized;
+}
+
+/**
+ * Simplified helper to create audit log
+ */
+export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
+  return logAuditEvent(entry);
 }

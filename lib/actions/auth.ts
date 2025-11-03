@@ -200,10 +200,13 @@ export async function changePassword(
     // Hash new password
     const hashedPassword = await hash(newPassword, 12);
 
-    // Update password
+    // Update password and clear mustChangePassword flag
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: hashedPassword },
+      data: { 
+        passwordHash: hashedPassword,
+        mustChangePassword: false,
+      },
     });
 
     return createSuccessResponse();

@@ -2,7 +2,8 @@ import dynamic from 'next/dynamic';
 import { auth } from '@/lib/auth/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { User, AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 const ChangePasswordForm = dynamic(
@@ -40,6 +41,16 @@ export default async function GuruBKSettingsPage() {
           Kelola pengaturan akun Anda
         </p>
       </div>
+
+      {session.user.mustChangePassword && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Perhatian!</strong> Anda harus mengganti password sebelum dapat mengakses fitur lain.
+            Password Anda telah direset oleh administrator.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

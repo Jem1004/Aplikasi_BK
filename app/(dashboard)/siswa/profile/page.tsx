@@ -4,7 +4,10 @@ import { StudentProfile } from '@/components/siswa/StudentProfile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth/auth';
 
 const StudentProfileForm = dynamic(
   () => import('@/components/siswa/StudentProfileForm').then(mod => ({ default: mod.StudentProfileForm })),
@@ -51,6 +54,7 @@ const ChangePasswordForm = dynamic(
 export const revalidate = 60;
 
 export default async function ProfilePage() {
+  const session = await auth();
   const result = await getMyProfile();
 
   if (!result.success || !result.data) {
@@ -84,6 +88,16 @@ export default async function ProfilePage() {
           Lihat dan edit informasi profil Anda
         </p>
       </div>
+
+      {session?.user.mustChangePassword && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Perhatian!</strong> Anda harus mengganti password sebelum dapat mengakses fitur lain.
+            Password Anda telah direset oleh administrator.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="view" className="space-y-6">
         <TabsList>

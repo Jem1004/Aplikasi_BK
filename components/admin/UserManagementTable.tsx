@@ -34,6 +34,7 @@ import { Pencil, Trash2, Search } from 'lucide-react';
 import { deleteUser } from '@/lib/actions/admin/users';
 import { useToast } from '@/hooks/use-toast';
 import { Role } from '@prisma/client';
+import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 type User = {
   id: string;
@@ -211,6 +212,11 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <div className="flex justify-end gap-2">
+                      <ResetPasswordDialog 
+                        userId={user.id}
+                        userName={user.fullName}
+                        userRole={roleLabels[user.role]}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"

@@ -78,6 +78,7 @@ export const authConfig: NextAuthConfig = {
             role: user.role,
             teacherId: user.teacher?.id || null,
             studentId: user.student?.id || null,
+            mustChangePassword: user.mustChangePassword,
           };
         } catch (error) {
           console.error('Authorization error:', error);
@@ -98,6 +99,7 @@ export const authConfig: NextAuthConfig = {
         token.role = user.role;
         token.teacherId = user.teacherId;
         token.studentId = user.studentId;
+        token.mustChangePassword = user.mustChangePassword;
       }
       return token;
     },
@@ -108,6 +110,7 @@ export const authConfig: NextAuthConfig = {
         session.user.role = token.role as Role;
         session.user.teacherId = token.teacherId as string | null;
         session.user.studentId = token.studentId as string | null;
+        session.user.mustChangePassword = token.mustChangePassword as boolean;
       }
       return session;
     },

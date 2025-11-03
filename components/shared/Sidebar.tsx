@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  LayoutDashboard,
   Users,
-  BookOpen,
   FileText,
   Calendar,
-  ClipboardList,
   GraduationCap,
   UserCheck,
   AlertCircle,
@@ -21,17 +18,32 @@ import {
   Home,
   BookMarked,
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Book,
+  Menu,
   LogOut,
+  ChevronLeft,
+  Settings,
+  BookOpen,
+  School,
 } from "lucide-react";
+
+interface SchoolInfo {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website?: string;
+  principalName: string;
+  principalNip: string;
+  logoPath?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  description?: string;
 }
 
 interface SidebarProps {
@@ -44,350 +56,308 @@ interface SidebarProps {
 
 const navigationByRole: Record<string, NavItem[]> = {
   ADMIN: [
-    {
-      title: "Dashboard",
-      href: "/admin",
-      icon: Home,
-      description: "Ringkasan sistem",
-    },
-    {
-      title: "Manajemen Pengguna",
-      href: "/admin/users",
-      icon: Users,
-      description: "Kelola akun pengguna",
-    },
-    {
-      title: "Data Master",
-      href: "/admin/master-data",
-      icon: BookMarked,
-      description: "Data induk sekolah",
-    },
-    {
-      title: "Mapping",
-      href: "/admin/mappings",
-      icon: UserCheck,
-      description: "Penugasan staf",
-    },
-    {
-      title: "Audit Logs",
-      href: "/admin/audit-logs",
-      icon: ShieldCheck,
-      description: "Log aktivitas sistem",
-    },
+    { title: "Dashboard", href: "/admin", icon: Home },
+    { title: "Pengguna", href: "/admin/users", icon: Users },
+    { title: "Data Master", href: "/admin/master-data", icon: BookMarked },
+    { title: "Mapping", href: "/admin/mappings", icon: UserCheck },
+    { title: "Audit Logs", href: "/admin/audit-logs", icon: ShieldCheck },
+    { title: "Pengaturan", href: "/admin/settings", icon: Settings },
   ],
   GURU_BK: [
-    {
-      title: "Dashboard",
-      href: "/guru-bk",
-      icon: Home,
-      description: "Ringkasan aktivitas",
-    },
-    {
-      title: "Siswa",
-      href: "/guru-bk/students",
-      icon: GraduationCap,
-      description: "Data siswa bimbingan",
-    },
-    {
-      title: "Pelanggaran",
-      href: "/guru-bk/violations",
-      icon: AlertCircle,
-      description: "Catatan pelanggaran",
-    },
-    {
-      title: "Jurnal Konseling",
-      href: "/guru-bk/journals",
-      icon: FileText,
-      description: "Catatan pribadi",
-    },
-    {
-      title: "Izin",
-      href: "/guru-bk/permissions",
-      icon: FileCheck,
-      description: "Surat izin siswa",
-    },
-    {
-      title: "Janji Temu",
-      href: "/guru-bk/appointments",
-      icon: Calendar,
-      description: "Jadwal konseling",
-    },
+    { title: "Dashboard", href: "/guru-bk", icon: Home },
+    { title: "Siswa", href: "/guru-bk/students", icon: GraduationCap },
+    { title: "Pelanggaran", href: "/guru-bk/violations", icon: AlertCircle },
+    { title: "Jurnal", href: "/guru-bk/journals", icon: FileText },
+    { title: "Izin", href: "/guru-bk/permissions", icon: FileCheck },
+    { title: "Janji Temu", href: "/guru-bk/appointments", icon: Calendar },
+    { title: "Pengaturan", href: "/guru-bk/settings", icon: Settings },
   ],
   WALI_KELAS: [
-    {
-      title: "Dashboard",
-      href: "/wali-kelas",
-      icon: Home,
-      description: "Ringkasan kelas",
-    },
-    {
-      title: "Siswa Kelas",
-      href: "/wali-kelas/students",
-      icon: GraduationCap,
-      description: "Data siswa kelas",
-    },
+    { title: "Dashboard", href: "/wali-kelas", icon: Home },
+    { title: "Siswa Kelas", href: "/wali-kelas/students", icon: GraduationCap },
+    { title: "Pengaturan", href: "/wali-kelas/settings", icon: Settings },
   ],
   SISWA: [
-    {
-      title: "Dashboard",
-      href: "/siswa",
-      icon: Home,
-      description: "Ringkasan pribadi",
-    },
-    {
-      title: "Profil",
-      href: "/siswa/profile",
-      icon: Users,
-      description: "Data pribadi",
-    },
-    {
-      title: "Pelanggaran",
-      href: "/siswa/violations",
-      icon: AlertCircle,
-      description: "Riwayat pelanggaran",
-    },
-    {
-      title: "Izin",
-      href: "/siswa/permissions",
-      icon: FileCheck,
-      description: "Status izin",
-    },
-    {
-      title: "Janji Temu",
-      href: "/siswa/appointments",
-      icon: Calendar,
-      description: "Jadwal konseling",
-    },
+    { title: "Dashboard", href: "/siswa", icon: Home },
+    { title: "Profil", href: "/siswa/profile", icon: Users },
+    { title: "Pelanggaran", href: "/siswa/violations", icon: AlertCircle },
+    { title: "Izin", href: "/siswa/permissions", icon: FileCheck },
+    { title: "Janji Temu", href: "/siswa/appointments", icon: Calendar },
   ],
 };
 
-export function Sidebar({ role, isOpen = true, onClose, isMinimized = false, onToggleMinimized }: SidebarProps) {
+export function Sidebar({
+  role,
+  isOpen = true,
+  onClose,
+  isMinimized = false,
+  onToggleMinimized,
+}: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navItems = navigationByRole[role] || [];
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  // Fetch school information
+  useEffect(() => {
+    const fetchSchoolInfo = async () => {
+      try {
+        const response = await fetch('/api/school-info');
+        if (response.ok) {
+          const data = await response.json();
+          setSchoolInfo(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch school info:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSchoolInfo();
+  }, []);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile Backdrop with improved animation */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden transition-opacity duration-300 ease-in-out"
           onClick={onClose}
-          role="presentation"
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar with green system colors */}
       <aside
+        ref={sidebarRef}
         className={cn(
-          "fixed left-0 top-0 z-40 h-full border-r border-gray-200/60 bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out md:relative md:z-20 md:h-full md:translate-x-0 flex flex-col",
-          isMinimized ? "w-16" : "w-72",
-          isOpen ? "translate-x-0 shadow-2xl md:shadow-lg" : "-translate-x-full"
+          "fixed left-0 top-0 z-50 h-screen flex flex-col bg-gradient-to-b from-green-50 to-white border-r border-green-200/60 transition-all duration-300 ease-in-out shadow-xl",
+          // Mobile
+          "w-80",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop
+          "md:relative md:translate-x-0 md:shadow-lg",
+          isMinimized ? "md:w-20" : "md:w-72"
         )}
-        role="navigation"
-        aria-label="Main navigation"
       >
-        {/* Mobile header */}
-        <div className="flex h-16 items-center justify-between border-b border-gray-200/60 bg-white/80 backdrop-blur-sm px-4 md:hidden">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-              <Home className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Menu Navigasi</h2>
-              <p className="text-xs text-gray-500">Kelola aplikasi</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="min-w-[44px] min-h-[44px] hover:bg-gray-100 transition-colors"
-            aria-label="Tutup menu navigasi"
-          >
-            <X className="h-5 w-5" />
-            <span className="sr-only">Tutup menu navigasi</span>
-          </Button>
-        </div>
-
-        {/* Desktop branding area - only on desktop */}
-        <div className="hidden md:flex items-center justify-between px-3 py-4 border-b border-gray-200/30">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md transition-transform hover:scale-105 duration-200">
-              <Book className="h-5 w-5 text-white" />
-            </div>
-            {!isMinimized && (
-              <div className="flex flex-col">
-                <h2 className="text-sm font-semibold text-gray-900">Aplikasi BK</h2>
-                <p className="text-xs text-gray-500">Sekolah Indonesia</p>
+        {/* Header with school information and book icon */}
+        <div
+          className={cn(
+            "flex items-center border-b border-green-200/60 transition-all duration-300 bg-gradient-to-r from-green-600 to-green-700",
+            isMinimized ? "md:justify-center md:px-3 md:h-16" : "px-6 h-20"
+          )}
+        >
+          {!isMinimized && (
+            <>
+              <div className="flex items-center gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/30">
+                  <BookOpen className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-lg font-bold text-white">
+                    {isLoading ? "Aplikasi BK" : (schoolInfo?.name || "Aplikasi BK")}
+                  </h1>
+                  <p className="text-xs text-green-100 font-medium">
+                    {isLoading ? "Sistem Manajemen" : "Sistem Informasi BK"}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Minimize toggle button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleMinimized}
-            className="min-w-[36px] min-h-[36px] hover:bg-gray-100 transition-colors"
-            aria-label={isMinimized ? "Perluas sidebar" : "Minimalis sidebar"}
-          >
-            {isMinimized ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-            <span className="sr-only">
-              {isMinimized ? "Perluas sidebar" : "Minimalis sidebar"}
-            </span>
-          </Button>
+              {/* Desktop minimize button */}
+              <button
+                onClick={onToggleMinimized}
+                className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-all duration-200 hover:scale-105"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              {/* Mobile close button */}
+              <button
+                onClick={onClose}
+                className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl hover:bg-white/20 text-white/80 transition-all duration-200 hover:scale-105"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          {isMinimized && (
+            <button
+              onClick={onToggleMinimized}
+              className="hidden md:flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 hover:scale-105 shadow-lg border border-white/30"
+            >
+              <BookOpen className="h-6 w-6 text-white" />
+            </button>
+          )}
         </div>
 
-        <ScrollArea className="flex-1">
-          <nav className={cn("flex flex-col gap-1", isMinimized ? "p-2" : "p-4 md:p-6")} aria-label="Primary navigation">
-            {/* Navigation items */}
+        {/* Navigation with improved styling */}
+        <ScrollArea className="flex-1 py-6">
+          <nav className={cn("space-y-2", isMinimized ? "md:px-2" : "px-4")}>
             {navItems.map((item, index) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
 
               return (
-                <Link
+                <div
                   key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  aria-current={isActive ? "page" : undefined}
-                  className="group"
+                  className={cn(
+                    "relative",
+                    isMinimized && "md:flex md:justify-center"
+                  )}
                 >
-                  <div
+                  {/* Active indicator line */}
+                  {isActive && !isMinimized && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-green-600 to-green-700 rounded-r-full" />
+                  )}
+
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
                     className={cn(
-                      "relative flex items-center rounded-xl text-sm font-medium transition-all duration-200 ease-in-out",
-                      "hover:scale-[1.02] active:scale-[0.98]",
-                      "animate-in slide-in-from-left duration-300",
-                      isMinimized ? "px-2 py-3 justify-center" : "gap-4 px-4 py-3",
-                      `delay-${index * 50}`,
+                      "group flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 relative overflow-hidden",
+                      isMinimized && "md:justify-center md:px-0 md:w-16 md:h-16 md:mx-auto",
                       isActive
-                        ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                        ? "bg-gradient-to-r from-green-50 to-green-100 text-green-700 shadow-sm border border-green-200/50"
+                        : "text-gray-600 hover:bg-green-50 hover:text-green-700 hover:scale-[1.02] hover:shadow-sm"
                     )}
+                    title={isMinimized ? item.title : undefined}
+                    style={{
+                      animationDelay: `${index * 50}ms`
+                    }}
                   >
-                    {/* Background shine effect on hover */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 opacity-0 group-hover:opacity-100" />
+                    {/* Background effect on hover */}
+                    <div className={cn(
+                      "absolute inset-0 bg-gradient-to-r from-green-500/5 to-green-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                      isActive && "opacity-100"
+                    )} />
 
-                    {/* Icon */}
-                    <div
-                      className={cn(
-                        "flex items-center justify-center rounded-lg transition-all duration-200",
-                        isMinimized ? "h-10 w-10" : "h-10 w-10",
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-800"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </div>
+                    <Icon className={cn(
+                      "h-5 w-5 flex-shrink-0 relative z-10 transition-colors duration-200",
+                      isActive ? "text-green-600" : "text-gray-500 group-hover:text-green-600"
+                    )} />
 
-                    {/* Content - hidden when minimized */}
                     {!isMinimized && (
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="truncate font-semibold">{item.title}</p>
-                          {isActive && (
-                            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                          )}
-                        </div>
-                        {item.description && (
-                          <p
-                            className={cn(
-                              "text-xs truncate mt-0.5",
-                              isActive ? "text-white/80" : "text-gray-500"
-                            )}
-                          >
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
+                      <span className="relative z-10">{item.title}</span>
                     )}
-                  </div>
-                </Link>
+
+                    {/* Active indicator for minimized state */}
+                    {isMinimized && isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-700 rounded-xl opacity-10" />
+                    )}
+                  </Link>
+                </div>
               );
             })}
           </nav>
         </ScrollArea>
 
-        {/* User Section - Paling Bawah Sidebar */}
-        <div className={cn(
-          "border-t border-gray-200/30 bg-white/90 backdrop-blur-md shadow-lg transition-all duration-300",
-          isMinimized ? "px-2 py-3" : "px-4 py-4"
-        )}>
-          <div className="flex flex-col gap-3">
-            {/* User Info */}
-            <div className={cn("flex items-center", isMinimized ? "justify-center" : "gap-3")}>
-              <div className="relative">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-                  <span className="text-white font-semibold text-sm">
-                    {session?.user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "U"}
-                  </span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white animate-pulse" />
+        {/* Footer with green user section */}
+        <div
+          className={cn(
+            "border-t border-green-200/60 p-4 bg-gradient-to-t from-green-50/50 to-transparent",
+            isMinimized && "md:flex md:flex-col md:items-center md:p-3"
+          )}
+        >
+          {/* User Info with green theme */}
+          {!isMinimized && session?.user && (
+            <div className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-white/70 backdrop-blur-sm border border-green-200/50">
+              <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-md">
+                <span className="text-sm font-bold text-white">
+                  {session.user.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2) || "U"}
+                </span>
               </div>
-
-              {!isMinimized && session?.user && (
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {session.user.name}
-                    </p>
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                  </div>
-                  <span className={cn(
-                    "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                    role === "ADMIN" ? "bg-purple-100 text-purple-700" :
-                    role === "GURU_BK" ? "bg-blue-100 text-blue-700" :
-                    role === "WALI_KELAS" ? "bg-green-100 text-green-700" :
-                    "bg-orange-100 text-orange-700"
-                  )}>
-                    {role === "ADMIN" ? "Administrator" :
-                     role === "GURU_BK" ? "Guru BK" :
-                     role === "WALI_KELAS" ? "Wali Kelas" : "Siswa"}
-                  </span>
-                </div>
-              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {session.user.name}
+                </p>
+                <p className="text-xs text-gray-500 truncate font-medium">
+                  {role === "ADMIN"
+                    ? "Administrator"
+                    : role === "GURU_BK"
+                    ? "Guru BK"
+                    : role === "WALI_KELAS"
+                    ? "Wali Kelas"
+                    : "Siswa"}
+                </p>
+              </div>
             </div>
+          )}
 
-            {/* User Status Label */}
-            {!isMinimized && (
-              <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-lg">
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs font-medium text-green-700">Sedang Aktif</span>
+          {isMinimized && session?.user && (
+            <div className="hidden md:flex h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 items-center justify-center mb-4 shadow-md">
+              <span className="text-sm font-bold text-white">
+                {session.user.name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2) || "U"}
+              </span>
+            </div>
+          )}
+
+          {/* School Info in footer when not minimized */}
+          {!isMinimized && schoolInfo && (
+            <div className="mb-4 p-3 rounded-xl bg-green-50/50 border border-green-200/30 min-h-[80px] max-h-[120px] overflow-hidden transition-all duration-300">
+              <div className="flex items-start gap-2 mb-2">
+                <School className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs font-semibold text-green-800 leading-tight">Informasi Sekolah</p>
               </div>
+              <div className="space-y-1">
+                <p
+                  className="text-xs text-gray-600 font-medium leading-tight break-words hyphens-auto"
+                  title={schoolInfo.name}
+                >
+                  {schoolInfo.name}
+                </p>
+                <p
+                  className="text-xs text-gray-500 leading-tight break-words hyphens-auto line-clamp-2"
+                  title={schoolInfo.address}
+                >
+                  {schoolInfo.address}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Logout Button with green hover */}
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm border border-transparent hover:border-red-200/50 w-full",
+              isMinimized && "md:justify-center md:w-12 md:h-12 md:p-0"
             )}
-
-            {/* Logout Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "w-full bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 border-gray-200",
-                isMinimized ? "h-9 w-9 p-0 mx-auto justify-center" : "h-9 px-4"
-              )}
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              title={isMinimized ? "Sign Out" : undefined}
-            >
-              <LogOut className={cn(isMinimized ? "h-4 w-4" : "h-4 w-4 mr-2")} />
-              {!isMinimized && <span className="text-sm font-medium">Sign Out</span>}
-            </Button>
-
-            {/* Version info */}
-            <div className={cn(
-              "text-xs text-gray-400 text-center opacity-60",
-              isMinimized ? "hidden" : "block"
-            )}>
-              Aplikasi BK v1.0.0
-            </div>
-          </div>
+            title={isMinimized ? "Keluar" : undefined}
+          >
+            <LogOut className={cn(
+              "h-4 w-4 transition-colors duration-200",
+              isMinimized && "h-5 w-5"
+            )} />
+            {!isMinimized && <span>Keluar</span>}
+          </button>
         </div>
-
       </aside>
     </>
   );
