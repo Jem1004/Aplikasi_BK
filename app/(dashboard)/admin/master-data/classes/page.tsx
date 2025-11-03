@@ -7,6 +7,10 @@ import { getClasses, getAcademicYears } from '@/lib/actions/admin/master-data';
 import { ClassActions } from '@/components/admin/ClassActions';
 import { ClassFilter } from '@/components/admin/ClassFilter';
 
+// Cache classes data for 5 minutes (300 seconds)
+// Classes change infrequently, so longer cache is appropriate
+export const revalidate = 300;
+
 interface ClassesPageProps {
   searchParams: Promise<{
     academicYearId?: string;

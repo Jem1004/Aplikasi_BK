@@ -8,6 +8,10 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+// Implement stale-while-revalidate for dashboard statistics
+// Cache for 1 minute (60 seconds) - dashboard stats should be relatively fresh
+export const revalidate = 60;
+
 async function getDashboardData() {
   const session = await auth();
   

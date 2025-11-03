@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { getViolationTypes } from '@/lib/actions/admin/master-data';
 import { ViolationTypeActions } from '@/components/admin/ViolationTypeActions';
 
+// Cache violation types data for 5 minutes (300 seconds)
+// Violation types change infrequently, so longer cache is appropriate
+export const revalidate = 300;
+
 export default async function ViolationTypesPage() {
   const result = await getViolationTypes();
   const violationTypes = result.success ? result.data : [];

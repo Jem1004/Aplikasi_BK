@@ -1,5 +1,20 @@
-import { ClassForm } from '@/components/admin/ClassForm';
+import dynamic from 'next/dynamic';
 import { getAcademicYears } from '@/lib/actions/admin/master-data';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ClassForm = dynamic(
+  () => import('@/components/admin/ClassForm').then(mod => ({ default: mod.ClassForm })),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+    )
+  }
+);
 
 export default async function NewClassPage() {
   const result = await getAcademicYears();

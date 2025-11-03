@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { getAcademicYears } from '@/lib/actions/admin/master-data';
 import { AcademicYearActions } from '@/components/admin/AcademicYearActions';
 
+// Cache academic years data for 5 minutes (300 seconds)
+// Academic years change infrequently, so longer cache is appropriate
+export const revalidate = 300;
+
 export default async function AcademicYearsPage() {
   const result = await getAcademicYears();
   const academicYears = result.success ? result.data : [];

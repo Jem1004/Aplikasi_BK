@@ -1,11 +1,33 @@
+import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth/auth';
 import { getMyCounselingJournals } from '@/lib/actions/guru-bk/journals';
 import { getMyStudents } from '@/lib/actions/guru-bk/violations';
-import { CounselingJournalList } from '@/components/guru-bk/CounselingJournalList';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+
+const CounselingJournalList = dynamic(
+  () => import('@/components/guru-bk/CounselingJournalList').then(mod => ({ default: mod.CounselingJournalList })),
+  {
+    loading: () => (
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
+
+// Cache journals list for 30 seconds
+// Journals are frequently updated, shorter cache
+export const revalidate = 30;
 
 export default async function JournalsPage() {
   const session = await auth();

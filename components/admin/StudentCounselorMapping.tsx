@@ -270,7 +270,7 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
 
               {/* Student Selection */}
               <div className="space-y-2">
-                <FormLabel>Pilih Siswa</FormLabel>
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Pilih Siswa</label>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />

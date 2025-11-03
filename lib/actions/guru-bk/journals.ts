@@ -456,6 +456,16 @@ export async function getCounselingJournalById(
       return { success: false, error: ERROR_MESSAGES.UNAUTHORIZED };
     }
 
+    // Rate limiting check
+    const rateLimitResult = await checkRateLimit(
+      journalAccessRateLimiter, 
+      `journal-access:${session.user.id}`
+    );
+    
+    if (!rateLimitResult.success) {
+      return { success: false, error: rateLimitResult.error };
+    }
+
     // Find journal
     const journal = await prisma.counselingJournal.findUnique({
       where: { id },

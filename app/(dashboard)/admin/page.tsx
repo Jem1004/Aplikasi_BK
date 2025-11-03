@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 
+// Implement stale-while-revalidate for dashboard statistics
+// Cache for 1 minute (60 seconds) - dashboard stats should be relatively fresh
+export const revalidate = 60;
+
 async function getAdminStats() {
   const [totalUsers, totalStudents, totalGuruBK, totalClasses] = await Promise.all([
     prisma.user.count({

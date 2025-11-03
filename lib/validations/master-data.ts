@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ViolationType as ViolationTypeEnum } from '@prisma/client';
+import { ViolationCategory } from '@prisma/client';
 
 // Academic Year validation schema
 export const academicYearSchema = z.object({
@@ -36,7 +36,7 @@ export const violationTypeSchema = z.object({
   name: z.string().min(1, 'Nama harus diisi').max(255, 'Nama maksimal 255 karakter'),
   description: z.string().optional().nullable(),
   points: z.number().int('Poin harus berupa angka'),
-  type: z.nativeEnum(ViolationTypeEnum, { errorMap: () => ({ message: 'Tipe tidak valid' }) }),
+  type: z.nativeEnum(ViolationCategory, { errorMap: () => ({ message: 'Tipe tidak valid' }) }),
   category: z.string().max(100, 'Kategori maksimal 100 karakter').optional().nullable(),
   isActive: z.boolean().default(true),
 }).refine(

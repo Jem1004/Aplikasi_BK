@@ -1,8 +1,20 @@
+import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth/auth';
 import { getMyStudents } from '@/lib/actions/guru-bk/violations';
-import { CounselingJournalForm } from '@/components/guru-bk/CounselingJournalForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const CounselingJournalForm = dynamic(() => import('@/components/guru-bk/CounselingJournalForm').then(mod => ({ default: mod.CounselingJournalForm })), {
+  loading: () => (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+  )
+});
 
 export default async function NewJournalPage() {
   const session = await auth();

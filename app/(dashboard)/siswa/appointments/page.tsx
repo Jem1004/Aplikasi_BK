@@ -6,6 +6,10 @@ import { getMyAppointments } from '@/lib/actions/siswa/appointments';
 import { Plus, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+// Cache appointments for 30 seconds
+// Appointments change frequently
+export const revalidate = 30;
+
 export const metadata = {
   title: 'Janji Temu Saya | Aplikasi BK',
   description: 'Kelola janji temu konsultasi dengan guru BK',

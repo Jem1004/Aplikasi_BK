@@ -1,4 +1,19 @@
-import { ViolationTypeForm } from '@/components/admin/ViolationTypeForm';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ViolationTypeForm = dynamic(
+  () => import('@/components/admin/ViolationTypeForm').then(mod => ({ default: mod.ViolationTypeForm })),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+    )
+  }
+);
 
 export default function NewViolationTypePage() {
   return (

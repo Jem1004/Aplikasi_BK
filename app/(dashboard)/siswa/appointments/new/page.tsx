@@ -1,12 +1,37 @@
+import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { AppointmentBookingForm } from '@/components/siswa/AppointmentBookingForm';
 import { getMyCounselor } from '@/lib/actions/siswa/appointments';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const AppointmentBookingForm = dynamic(() => import('@/components/siswa/AppointmentBookingForm').then(mod => ({ default: mod.AppointmentBookingForm })), {
+  loading: () => (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+});
 
 export const metadata = {
   title: 'Buat Janji Temu | Aplikasi BK',

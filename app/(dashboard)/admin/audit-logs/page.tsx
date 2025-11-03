@@ -1,7 +1,27 @@
+import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { getAuditLogs } from '@/lib/actions/admin/audit-logs';
-import { AuditLogList } from '@/components/admin/AuditLogList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const AuditLogList = dynamic(
+  () => import('@/components/admin/AuditLogList').then(mod => ({ default: mod.AuditLogList })),
+  {
+    loading: () => (
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
+
+// No caching for audit logs - always fetch fresh data
+// Audit logs need to be real-time for security monitoring
+export const revalidate = 0;
 
 export const metadata = {
   title: 'Audit Logs - Admin',

@@ -12,12 +12,13 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
 
-  // Close sidebar when clicking outside on mobile
+  // Handle responsive sidebar behavior
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
-        setSidebarOpen(false);
+        setSidebarOpen(false); // Close mobile overlay
       }
     };
 
@@ -30,33 +31,46 @@ export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps
       {/* Skip to main content link for screen readers */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-md focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-md focus:shadow-lg transition-all duration-200"
       >
-        Skip to main content
+        Langsung ke konten utama
       </a>
 
-      {/* Navbar - pass menu toggle handler */}
-      <div onClick={() => setSidebarOpen(!sidebarOpen)}>
-        {navbar}
-      </div>
-
-      <div className="flex">
-        {/* Sidebar */}
+      {/* Main layout container */}
+      <div className="flex h-screen">
+        {/* Sidebar - Fixed on left side */}
         <Sidebar
           role={role}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          isMinimized={sidebarMinimized}
+          onToggleMinimized={() => setSidebarMinimized(!sidebarMinimized)}
         />
 
-        {/* Main content */}
-        <main 
-          id="main-content" 
-          className="flex-1 p-4 md:p-6 lg:p-8 w-full min-w-0"
-          role="main"
-          aria-label="Main content"
-        >
-          {children}
-        </main>
+        {/* Main content area with header */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Navbar - positioned above main content */}
+          <header className="relative z-30">
+            <div onClick={() => setSidebarOpen(!sidebarOpen)}>
+              {navbar}
+            </div>
+          </header>
+
+          {/* Main content */}
+          <main
+            id="main-content"
+            className="flex-1 overflow-auto transition-all duration-300 ease-in-out"
+            role="main"
+            aria-label="Konten utama"
+          >
+            {/* Content wrapper with proper spacing */}
+            <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+              <div className="animate-in fade-in duration-300 slide-in-from-bottom-2">
+                {children}
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,21 @@
-import { UserForm } from '@/components/admin/UserForm';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { prisma } from '@/lib/db/prisma';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const UserForm = dynamic(() => import('@/components/admin/UserForm').then(mod => ({ default: mod.UserForm })), {
+  loading: () => (
+    <div className="space-y-4 bg-white p-6 rounded-lg border">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+  )
+});
 
 async function getClasses() {
   const classes = await prisma.class.findMany({

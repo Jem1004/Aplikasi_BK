@@ -1,12 +1,29 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { PermissionForm } from '@/components/guru-bk/PermissionForm';
-import { PermissionPrintView } from '@/components/guru-bk/PermissionPrintView';
 import { getMyStudents } from '@/lib/actions/guru-bk/violations';
 import type { PermissionPrintData } from '@/lib/actions/guru-bk/permissions';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const PermissionForm = dynamic(() => import('@/components/guru-bk/PermissionForm').then(mod => ({ default: mod.PermissionForm })), {
+  loading: () => (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+  ),
+  ssr: false
+});
+
+const PermissionPrintView = dynamic(() => import('@/components/guru-bk/PermissionPrintView').then(mod => ({ default: mod.PermissionPrintView })), {
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>,
+  ssr: false
+});
 
 type Student = {
   id: string;

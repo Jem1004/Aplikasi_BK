@@ -1,8 +1,20 @@
+import dynamic from 'next/dynamic';
 import { getMyStudents } from '@/lib/actions/guru-bk/violations';
 import { prisma } from '@/lib/db/prisma';
-import { ViolationForm } from '@/components/guru-bk/ViolationForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { redirect } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ViolationForm = dynamic(() => import('@/components/guru-bk/ViolationForm').then(mod => ({ default: mod.ViolationForm })), {
+  loading: () => (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+  )
+});
 
 type PageProps = {
   searchParams: Promise<{

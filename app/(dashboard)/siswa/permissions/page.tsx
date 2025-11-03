@@ -3,6 +3,10 @@ import { MyPermissionList } from '@/components/siswa/MyPermissionList';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
+// Cache permissions for 1 minute (60 seconds)
+// Permissions are created frequently
+export const revalidate = 60;
+
 export default async function MyPermissionsPage() {
   const result = await getMyPermissions();
 

@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// Implement stale-while-revalidate for dashboard statistics
+// Cache for 1 minute (60 seconds) - dashboard stats should be relatively fresh
+export const revalidate = 60;
+
 async function getDashboardData() {
   const session = await auth();
   

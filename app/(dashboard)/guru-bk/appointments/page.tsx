@@ -4,6 +4,10 @@ import { getMyAppointments } from '@/lib/actions/guru-bk/appointments';
 import { AppointmentList } from '@/components/guru-bk/AppointmentList';
 import { CalendarDays } from 'lucide-react';
 
+// Cache appointments for 30 seconds
+// Appointments change frequently, shorter cache
+export const revalidate = 30;
+
 export default async function AppointmentsPage() {
   const session = await auth();
 

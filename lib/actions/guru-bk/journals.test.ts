@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import {
@@ -8,9 +8,7 @@ import {
   getMyCounselingJournals,
   getCounselingJournalById,
 } from './journals';
-import { encrypt, decrypt } from '@/lib/encryption/crypto';
-import { vi } from 'date-fns/locale';
-import { vi } from 'date-fns/locale';
+import { decrypt } from '@/lib/encryption/crypto';
 
 const prisma = new PrismaClient();
 

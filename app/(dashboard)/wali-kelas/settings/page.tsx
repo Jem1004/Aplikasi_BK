@@ -1,6 +1,27 @@
-import { ChangePasswordForm } from '@/components/shared/ChangePasswordForm';
+import dynamic from 'next/dynamic';
 import { auth } from '@/lib/auth/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ChangePasswordForm = dynamic(
+  () => import('@/components/shared/ChangePasswordForm').then(mod => ({ default: mod.ChangePasswordForm })),
+  {
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
 import { User } from 'lucide-react';
 import { redirect } from 'next/navigation';
 

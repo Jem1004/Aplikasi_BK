@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth/auth';
 import type { ActionResponse } from '@/types';
+import type { Session } from 'next-auth';
 import { ERROR_MESSAGES } from './error-messages';
 import { createErrorResponse, createSuccessResponse } from './index';
 import { logError } from './error-logger';
@@ -10,7 +11,7 @@ import { mapErrorToMessage } from './error-mapper';
  * Automatically handles auth checking and error logging
  */
 export async function withAuth<T>(
-  handler: (session: NonNullable<Awaited<ReturnType<typeof auth>>>) => Promise<ActionResponse<T>>,
+  handler: (session: Session) => Promise<ActionResponse<T>>,
   options?: {
     requiredRole?: string | string[];
     actionName?: string;

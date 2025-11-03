@@ -1,9 +1,30 @@
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
-import { UserManagementTable } from '@/components/admin/UserManagementTable';
 import { getUsers } from '@/lib/actions/admin/users';
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import { redirect } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+
+const UserManagementTable = dynamic(
+  () => import('@/components/admin/UserManagementTable').then(mod => ({ default: mod.UserManagementTable })),
+  {
+    loading: () => (
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
+
+// Cache user list for 30 seconds
+// Users change more frequently than master data, so shorter cache
+export const revalidate = 30;
 
 export default async function UsersPage() {
   const result = await getUsers();

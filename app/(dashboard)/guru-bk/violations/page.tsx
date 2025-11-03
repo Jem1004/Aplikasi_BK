@@ -5,6 +5,10 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+// Cache student list for 2 minutes (120 seconds)
+// Student assignments change occasionally
+export const revalidate = 120;
+
 export default async function ViolationsPage() {
   const result = await getMyStudents();
 

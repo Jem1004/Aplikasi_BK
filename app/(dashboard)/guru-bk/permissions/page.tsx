@@ -15,6 +15,113 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
+// Utility function untuk format time dengan error handling
+function formatTimeDisplay(timeString: string | null | undefined): string {
+  if (!timeString) return 'Tidak ada waktu';
+
+  try {
+    // Validasi input type
+    if (typeof timeString !== 'string') {
+      return 'Format waktu tidak valid';
+    }
+
+    // Jika sudah format HH:mm, validasi dan return
+    if (timeString.includes(':')) {
+      const [hours, minutes] = timeString.split(':');
+      const hourNum = parseInt(hours, 10);
+      const minuteNum = parseInt(minutes, 10);
+
+      // Validasi range jam dan menit
+      if (!isNaN(hourNum) && !isNaN(minuteNum) &&
+          hourNum >= 0 && hourNum <= 23 &&
+          minuteNum >= 0 && minuteNum <= 59) {
+        return timeString;
+      }
+    }
+
+    // Coba parsing dengan format lain
+    const parsedTime = new Date(`1970-01-01T${timeString}`);
+    if (isNaN(parsedTime.getTime())) {
+      return timeString; // Return original jika parsing gagal
+    }
+
+    return format(parsedTime, 'HH:mm');
+  } catch (error) {
+    console.warn('Time formatting error:', error, 'for time:', timeString, 'type:', typeof timeString);
+    return typeof timeString === 'string' ? timeString : 'Format waktu tidak valid';
+  }
+}
+
+// Utility function untuk format date dengan error handling
+function formatDateDisplay(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return 'Tanggal tidak tersedia';
+
+  try {
+    let date: Date;
+
+    // Jika sudah Date object, gunakan langsung
+    if (dateInput instanceof Date) {
+      date = dateInput;
+    } else {
+      // Jika string ISO format, parsing
+      date = new Date(dateInput);
+
+      // Jika parsing gagal dan bukan ISO, coba format lain
+      if (isNaN(date.getTime()) && !dateInput.includes('T')) {
+        date = new Date(`1970-01-01T${dateInput}`);
+      }
+    }
+
+    // Validasi Date object
+    if (isNaN(date.getTime())) {
+      return typeof dateInput === 'string' ? dateInput : 'Format tanggal tidak valid';
+    }
+
+    return format(date, 'dd MMM yyyy', { locale: idLocale });
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for date:', dateInput);
+    return 'Format tanggal tidak valid';
+  }
+}
+
+// Utility function untuk sanitize data permission
+function sanitizePermission(permission: any): any {
+  if (!permission || typeof permission !== 'object') {
+    return permission;
+  }
+
+  // Deep clone untuk menghindari object Date issues
+  const sanitized = { ...permission };
+
+  // Sanitize semua properti yang mungkin berisi object Date
+  Object.keys(sanitized).forEach(key => {
+    const value = sanitized[key];
+
+    // Jika Date object, convert ke string
+    if (value instanceof Date) {
+      sanitized[key] = value.toISOString();
+    }
+
+    // Jika object nested, cek rekursif
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      sanitized[key] = sanitizePermission(value);
+    }
+
+    // Jika array, sanitize setiap item
+    if (Array.isArray(value)) {
+      sanitized[key] = value.map(item =>
+        typeof item === 'object' && item !== null ? sanitizePermission(item) : item
+      );
+    }
+  });
+
+  return sanitized;
+}
+
+// Cache permissions list for 1 minute (60 seconds)
+// Permissions are created frequently, shorter cache
+export const revalidate = 60;
+
 export default async function PermissionsPage() {
   const result = await getPermissions();
 
@@ -22,7 +129,10 @@ export default async function PermissionsPage() {
     redirect('/unauthorized');
   }
 
-  const permissions = result.data || [];
+  const rawPermissions = result.data || [];
+
+  // Sanitize permissions untuk menghindari object Date issues
+  const permissions = rawPermissions.map(permission => sanitizePermission(permission));
 
   return (
     <div className="space-y-6">
@@ -73,25 +183,23 @@ export default async function PermissionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {permissions.map((permission) => (
-                <TableRow key={permission.id}>
+              {permissions && permissions.length > 0 ? permissions.map((permission) => (
+                <TableRow key={`permission-${permission.id || 'unknown'}`}>
                   <TableCell>
-                    {format(new Date(permission.permissionDate), 'dd MMM yyyy', {
-                      locale: idLocale,
-                    })}
+                    {formatDateDisplay(permission.permissionDate)}
                   </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {permission.student.user.fullName}
+                        {permission.student?.user?.fullName || 'Tidak ada nama'}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {permission.student.nis}
+                        {permission.student?.nis || 'Tidak ada NIS'}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {permission.student.class?.name || '-'}
+                    {permission.student?.class?.name || '-'}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -108,14 +216,13 @@ export default async function PermissionsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {format(new Date(`1970-01-01T${permission.startTime}`), 'HH:mm')}
-                      {permission.endTime &&
-                        ` - ${format(new Date(`1970-01-01T${permission.endTime}`), 'HH:mm')}`}
+                      {formatTimeDisplay(permission.startTime)}
+                      {permission.endTime && ` - ${formatTimeDisplay(permission.endTime)}`}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="max-w-xs truncate text-sm">
-                      {permission.reason}
+                      {permission.reason || 'Tidak ada alasan'}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -124,14 +231,20 @@ export default async function PermissionsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Tidak ada data izin yang tersedia
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         )}
       </div>
 
       {/* Summary Stats */}
-      {permissions.length > 0 && (
+      {permissions && permissions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-muted-foreground">Total Izin</div>
@@ -140,13 +253,13 @@ export default async function PermissionsPage() {
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-muted-foreground">Izin Masuk</div>
             <div className="text-2xl font-bold mt-1">
-              {permissions.filter((p) => p.permissionType === 'MASUK').length}
+              {permissions.filter((p) => p && p.permissionType === 'MASUK').length}
             </div>
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-muted-foreground">Izin Keluar</div>
             <div className="text-2xl font-bold mt-1">
-              {permissions.filter((p) => p.permissionType === 'KELUAR').length}
+              {permissions.filter((p) => p && p.permissionType === 'KELUAR').length}
             </div>
           </div>
         </div>

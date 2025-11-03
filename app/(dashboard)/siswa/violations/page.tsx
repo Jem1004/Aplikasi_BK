@@ -3,6 +3,10 @@ import { MyViolationList } from '@/components/siswa/MyViolationList';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
+// Cache violations for 1 minute (60 seconds)
+// Violations are updated frequently
+export const revalidate = 60;
+
 export default async function MyViolationsPage() {
   const result = await getMyViolations();
 

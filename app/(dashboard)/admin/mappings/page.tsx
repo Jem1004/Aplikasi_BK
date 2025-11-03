@@ -1,7 +1,50 @@
+import dynamic from 'next/dynamic';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StudentCounselorMapping } from '@/components/admin/StudentCounselorMapping';
-import { HomeroomTeacherMapping } from '@/components/admin/HomeroomTeacherMapping';
 import { prisma } from '@/lib/db/prisma';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+
+const StudentCounselorMapping = dynamic(
+  () => import('@/components/admin/StudentCounselorMapping').then(mod => ({ default: mod.StudentCounselorMapping })),
+  {
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
+
+const HomeroomTeacherMapping = dynamic(
+  () => import('@/components/admin/HomeroomTeacherMapping').then(mod => ({ default: mod.HomeroomTeacherMapping })),
+  {
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+);
+
+// Cache mappings for 2 minutes (120 seconds)
+// Mappings change occasionally, moderate cache duration
+export const revalidate = 120;
 
 export const metadata = {
   title: 'Mapping - Admin',
