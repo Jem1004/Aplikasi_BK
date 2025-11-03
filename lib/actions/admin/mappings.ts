@@ -5,6 +5,11 @@ import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import { Prisma } from '@prisma/client';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from '@/lib/audit/audit-logger';
 
 // Validation schemas
 const assignStudentToCounselorSchema = z.object({
@@ -147,6 +152,9 @@ export async function assignStudentToCounselor(
       };
     }
 
+    // Get session for audit log
+    const session = await auth();
+
     // Create assignments in a transaction
     await prisma.$transaction(async (tx) => {
       // Remove existing assignments for these students in this academic year
@@ -165,6 +173,21 @@ export async function assignStudentToCounselor(
           academicYearId: data.academicYearId,
         })),
       });
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.STUDENT_COUNSELOR_ASSIGNED,
+      entityType: ENTITY_TYPES.STUDENT_COUNSELOR_ASSIGNMENT,
+      newValues: {
+        studentIds: data.studentIds,
+        counselorId: data.counselorId,
+        counselorName: counselor.user.fullName,
+        academicYearId: data.academicYearId,
+        academicYearName: academicYear.name,
+        studentCount: data.studentIds.length,
+      },
     });
 
     return {

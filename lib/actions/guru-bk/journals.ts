@@ -5,6 +5,12 @@ import { prisma } from '@/lib/db/prisma';
 import { encrypt, decrypt } from '@/lib/encryption/crypto';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from '@/lib/audit/audit-logger';
+import { journalAccessRateLimiter, checkRateLimit } from '@/lib/rate-limit';
 
 // Response type
 type ActionResponse<T = void> = {
@@ -103,18 +109,16 @@ export async function createCounselingJournal(
       },
     });
 
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'CREATE',
-        entityType: 'CounselingJournal',
-        entityId: journal.id,
-        newValues: {
-          studentId,
-          sessionDate,
-          counselorId: session.user.teacherId,
-        },
+    // Log audit event
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.JOURNAL_CREATED,
+      entityType: ENTITY_TYPES.COUNSELING_JOURNAL,
+      entityId: journal.id,
+      newValues: {
+        studentId,
+        sessionDate,
+        counselorId: session.user.teacherId,
       },
     });
 
@@ -229,23 +233,21 @@ export async function updateCounselingJournal(
       },
     });
 
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'UPDATE',
-        entityType: 'CounselingJournal',
-        entityId: id,
-        oldValues: {
-          studentId: existingJournal.studentId,
-          sessionDate: existingJournal.sessionDate,
-          contentLength: oldContent.length,
-        },
-        newValues: {
-          studentId,
-          sessionDate,
-          contentLength: content.length,
-        },
+    // Log audit event
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.JOURNAL_UPDATED,
+      entityType: ENTITY_TYPES.COUNSELING_JOURNAL,
+      entityId: id,
+      oldValues: {
+        studentId: existingJournal.studentId,
+        sessionDate: existingJournal.sessionDate,
+        contentLength: oldContent.length,
+      },
+      newValues: {
+        studentId,
+        sessionDate,
+        contentLength: content.length,
       },
     });
 
@@ -300,17 +302,15 @@ export async function deleteCounselingJournal(
       },
     });
 
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'DELETE',
-        entityType: 'CounselingJournal',
-        entityId: id,
-        oldValues: {
-          studentId: existingJournal.studentId,
-          sessionDate: existingJournal.sessionDate,
-        },
+    // Log audit event
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.JOURNAL_DELETED,
+      entityType: ENTITY_TYPES.COUNSELING_JOURNAL,
+      entityId: id,
+      oldValues: {
+        studentId: existingJournal.studentId,
+        sessionDate: existingJournal.sessionDate,
       },
     });
 
@@ -479,16 +479,14 @@ export async function getCounselingJournalById(
     // Verify ownership - CRITICAL SECURITY CHECK
     if (journal.counselorId !== session.user.teacherId) {
       // Log unauthorized access attempt
-      await prisma.auditLog.create({
-        data: {
-          userId: session.user.id,
-          action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
-          entityType: 'CounselingJournal',
-          entityId: id,
-          newValues: {
-            attemptedBy: session.user.id,
-            ownedBy: journal.counselorId,
-          },
+      await logAuditEvent({
+        userId: session.user.id,
+        action: 'UNAUTHORIZED_ACCESS_ATTEMPT' as any,
+        entityType: ENTITY_TYPES.COUNSELING_JOURNAL,
+        entityId: id,
+        newValues: {
+          attemptedBy: session.user.id,
+          ownedBy: journal.counselorId,
         },
       });
 
@@ -508,14 +506,12 @@ export async function getCounselingJournalById(
       return { success: false, error: ERROR_MESSAGES.ENCRYPTION_ERROR };
     }
 
-    // Create audit log for access
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'READ',
-        entityType: 'CounselingJournal',
-        entityId: id,
-      },
+    // Log audit event for access
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.JOURNAL_READ,
+      entityType: ENTITY_TYPES.COUNSELING_JOURNAL,
+      entityId: id,
     });
 
     return {

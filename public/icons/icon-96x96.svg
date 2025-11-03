@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="96" height="96" fill="#10b981" rx="14.399999999999999"/>
+  
+  <!-- Icon content - BK letters -->
+  <text 
+    x="50%" 
+    y="50%" 
+    font-family="Arial, sans-serif" 
+    font-size="38.400000000000006" 
+    font-weight="bold" 
+    fill="white" 
+    text-anchor="middle" 
+    dominant-baseline="central">
+    BK
+  </text>
+  
+  <!-- Decorative element - book icon -->
+  <g transform="translate(48, 72)">
+    <rect x="-14.399999999999999" y="-7.68" width="28.799999999999997" height="11.52" fill="white" opacity="0.8" rx="0.96"/>
+    <line x1="-14.399999999999999" y1="-1.92" x2="14.399999999999999" y2="-1.92" stroke="#10b981" stroke-width="0.96"/>
+  </g>
+</svg>

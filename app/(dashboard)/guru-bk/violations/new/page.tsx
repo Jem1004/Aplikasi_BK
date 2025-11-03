@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { redirect } from 'next/navigation';
 
 type PageProps = {
-  searchParams: {
+  searchParams: Promise<{
     studentId?: string;
-  };
+  }>;
 };
 
 export default async function NewViolationPage({ searchParams }: PageProps) {
+  const { studentId } = await searchParams;
   // Get students
   const studentsResult = await getMyStudents();
 
@@ -53,7 +54,7 @@ export default async function NewViolationPage({ searchParams }: PageProps) {
           <ViolationForm
             students={students}
             violationTypes={violationTypes}
-            defaultStudentId={searchParams.studentId}
+            defaultStudentId={studentId}
           />
         </CardContent>
       </Card>

@@ -3,54 +3,33 @@
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db/prisma';
 import { hash } from 'bcryptjs';
-import { z } from 'zod';
 import type { ActionResponse } from '@/types';
-import { Role } from '@prisma/client';
-import { Prisma } from '@prisma/client';
-
-// Validation schemas
-const createUserSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  username: z.string().min(3, 'Username minimal 3 karakter'),
-  password: z
-    .string()
-    .min(8, 'Password minimal 8 karakter')
-    .regex(/[a-zA-Z]/, 'Password harus mengandung huruf')
-    .regex(/[0-9]/, 'Password harus mengandung angka'),
-  fullName: z.string().min(1, 'Nama lengkap harus diisi'),
-  phone: z.string().optional(),
-  role: z.nativeEnum(Role, { errorMap: () => ({ message: 'Role tidak valid' }) }),
-  // Teacher-specific fields
-  nip: z.string().optional(),
-  specialization: z.string().optional(),
-  // Student-specific fields
-  nis: z.string().optional(),
-  nisn: z.string().optional(),
-  classId: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  address: z.string().optional(),
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
-});
-
-const updateUserSchema = z.object({
-  email: z.string().email('Email tidak valid').optional(),
-  username: z.string().min(3, 'Username minimal 3 karakter').optional(),
-  fullName: z.string().min(1, 'Nama lengkap harus diisi').optional(),
-  phone: z.string().optional(),
-  isActive: z.boolean().optional(),
-  // Teacher-specific fields
-  nip: z.string().optional(),
-  specialization: z.string().optional(),
-  // Student-specific fields
-  nis: z.string().optional(),
-  nisn: z.string().optional(),
-  classId: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  address: z.string().optional(),
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
-});
+import { Prisma, Role } from '@prisma/client';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+  sanitizeForAudit,
+} from '@/lib/audit/audit-logger';
+import { 
+  createUserSchema, 
+  updateUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput 
+} from '@/lib/validations';
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+  ERROR_MESSAGES,
+  logError,
+  mapZodErrorsToFields,
+  mapErrorToMessage,
+  handlePrismaError,
+  isPrismaUniqueConstraintError,
+} from '@/lib/errors';
+import { userCreationRateLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit';
+import { headers } from 'next/headers';
 
 // Type for user with related data
 type UserWithRelations = Prisma.UserGetPayload<{
@@ -67,24 +46,18 @@ type UserWithRelations = Prisma.UserGetPayload<{
 /**
  * Check if user is admin
  */
-async function checkAdminAuth() {
+async function checkAdminAuth<T = void>() {
   const session = await auth();
 
   if (!session || !session.user) {
-    return {
-      success: false as const,
-      error: 'Anda harus login terlebih dahulu',
-    };
+    return { success: false as const, error: createErrorResponse<T>(ERROR_MESSAGES.UNAUTHORIZED) };
   }
 
   if (session.user.role !== 'ADMIN') {
-    return {
-      success: false as const,
-      error: 'Anda tidak memiliki akses ke halaman ini',
-    };
+    return { success: false as const, error: createErrorResponse<T>(ERROR_MESSAGES.PERMISSION_DENIED) };
   }
 
-  return { success: true as const };
+  return { success: true as const, session };
 }
 
 /**
@@ -96,9 +69,20 @@ export async function createUser(
 ): Promise<ActionResponse<{ userId: string }>> {
   try {
     // Check authorization
-    const authCheck = await checkAdminAuth();
+    const authCheck = await checkAdminAuth<{ userId: string }>();
     if (!authCheck.success) {
-      return authCheck;
+      return authCheck.error;
+    }
+
+    const { session } = authCheck;
+
+    // Rate limiting check
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimitResult = await checkRateLimit(userCreationRateLimiter, clientIp);
+    
+    if (!rateLimitResult.success) {
+      return createErrorResponse(rateLimitResult.error!);
     }
 
     // Parse and validate input
@@ -123,10 +107,7 @@ export async function createUser(
     const validatedFields = createUserSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
-      return {
-        success: false,
-        errors: validatedFields.error.flatten().fieldErrors,
-      };
+      return createValidationErrorResponse(mapZodErrorsToFields(validatedFields.error));
     }
 
     const data = validatedFields.data;
@@ -142,10 +123,7 @@ export async function createUser(
     });
 
     if (existingUser) {
-      return {
-        success: false,
-        error: 'Email atau username sudah digunakan',
-      };
+      return createErrorResponse(ERROR_MESSAGES.USER_ALREADY_EXISTS);
     }
 
     // Hash password
@@ -160,9 +138,9 @@ export async function createUser(
           username: data.username,
           passwordHash,
           fullName: data.fullName,
-          phone: data.phone,
+          phone: data.phone || null,
           role: data.role,
-          isActive: true,
+          isActive: data.isActive ?? true,
         },
       });
 
@@ -171,8 +149,8 @@ export async function createUser(
         await tx.teacher.create({
           data: {
             userId: user.id,
-            nip: data.nip,
-            specialization: data.specialization,
+            nip: data.nip || null,
+            specialization: data.specialization || null,
           },
         });
       }
@@ -187,12 +165,12 @@ export async function createUser(
           data: {
             userId: user.id,
             nis: data.nis,
-            nisn: data.nisn,
-            classId: data.classId,
+            nisn: data.nisn || null,
+            classId: data.classId || null,
             dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-            address: data.address,
-            parentName: data.parentName,
-            parentPhone: data.parentPhone,
+            address: data.address || null,
+            parentName: data.parentName || null,
+            parentPhone: data.parentPhone || null,
           },
         });
       }
@@ -200,24 +178,34 @@ export async function createUser(
       return user;
     });
 
-    return {
-      success: true,
-      data: { userId: result.id },
-    };
+    // Log audit event
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.USER_CREATED,
+      entityType: ENTITY_TYPES.USER,
+      entityId: result.id,
+      newValues: sanitizeForAudit({
+        email: result.email,
+        username: result.username,
+        fullName: result.fullName,
+        role: result.role,
+        phone: result.phone,
+      }),
+    });
+
+    return createSuccessResponse({ userId: result.id });
   } catch (error) {
-    console.error('Create user error:', error);
+    logError(error, { action: 'createUser', resource: 'user' });
+    
+    if (isPrismaUniqueConstraintError(error)) {
+      return createErrorResponse(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+    }
     
     if (error instanceof Error && error.message.includes('NIS')) {
-      return {
-        success: false,
-        error: error.message,
-      };
+      return createErrorResponse(error.message);
     }
 
-    return {
-      success: false,
-      error: 'Terjadi kesalahan. Silakan coba lagi',
-    };
+    return createErrorResponse(mapErrorToMessage(error));
   }
 }
 
@@ -233,7 +221,7 @@ export async function updateUser(
     // Check authorization
     const authCheck = await checkAdminAuth();
     if (!authCheck.success) {
-      return authCheck;
+      return authCheck.error;
     }
 
     // Parse and validate input
@@ -305,6 +293,9 @@ export async function updateUser(
       }
     }
 
+    // Get current user for audit log
+    const session = await auth();
+
     // Update user with related data in a transaction
     await prisma.$transaction(async (tx) => {
       // Update user
@@ -332,19 +323,44 @@ export async function updateUser(
 
       // Update student record if exists
       if (existingUser.student) {
-        await tx.student.update({
-          where: { userId: userId },
-          data: {
-            nis: data.nis,
-            nisn: data.nisn,
-            classId: data.classId,
-            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-            address: data.address,
-            parentName: data.parentName,
-            parentPhone: data.parentPhone,
-          },
-        });
+        const studentData: any = {};
+        if (data.nis !== undefined) studentData.nis = data.nis;
+        if (data.nisn !== undefined) studentData.nisn = data.nisn;
+        if (data.classId !== undefined) studentData.classId = data.classId;
+        if (data.dateOfBirth !== undefined) studentData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+        if (data.address !== undefined) studentData.address = data.address;
+        if (data.parentName !== undefined) studentData.parentName = data.parentName;
+        if (data.parentPhone !== undefined) studentData.parentPhone = data.parentPhone;
+        
+        if (Object.keys(studentData).length > 0) {
+          await tx.student.update({
+            where: { userId: userId },
+            data: studentData,
+          });
+        }
       }
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.USER_UPDATED,
+      entityType: ENTITY_TYPES.USER,
+      entityId: userId,
+      oldValues: sanitizeForAudit({
+        email: existingUser.email,
+        username: existingUser.username,
+        fullName: existingUser.fullName,
+        phone: existingUser.phone,
+        isActive: existingUser.isActive,
+      }),
+      newValues: sanitizeForAudit({
+        email: data.email || existingUser.email,
+        username: data.username || existingUser.username,
+        fullName: data.fullName || existingUser.fullName,
+        phone: data.phone || existingUser.phone,
+        isActive: data.isActive !== undefined ? data.isActive : existingUser.isActive,
+      }),
     });
 
     return {
@@ -368,7 +384,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
     // Check authorization
     const authCheck = await checkAdminAuth();
     if (!authCheck.success) {
-      return authCheck;
+      return authCheck.error;
     }
 
     // Check if user exists
@@ -428,6 +444,20 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
       }
     });
 
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.USER_DELETED,
+      entityType: ENTITY_TYPES.USER,
+      entityId: userId,
+      oldValues: sanitizeForAudit({
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+      }),
+    });
+
     return {
       success: true,
     };
@@ -450,9 +480,9 @@ export async function getUsers(filters?: {
 }): Promise<ActionResponse<UserWithRelations[]>> {
   try {
     // Check authorization
-    const authCheck = await checkAdminAuth();
+    const authCheck = await checkAdminAuth<UserWithRelations[]>();
     if (!authCheck.success) {
-      return authCheck;
+      return authCheck.error;
     }
 
     // Build where clause
@@ -510,9 +540,9 @@ export async function getUserById(
 ): Promise<ActionResponse<UserWithRelations>> {
   try {
     // Check authorization
-    const authCheck = await checkAdminAuth();
+    const authCheck = await checkAdminAuth<UserWithRelations>();
     if (!authCheck.success) {
-      return authCheck;
+      return authCheck.error;
     }
 
     // Fetch user

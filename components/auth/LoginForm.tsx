@@ -39,9 +39,13 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" aria-label="Login form">
       {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
+        <div 
+          className="rounded-lg bg-red-50 p-4 text-sm text-red-800" 
+          role="alert"
+          aria-live="assertive"
+        >
           {error}
         </div>
       )}
@@ -56,9 +60,14 @@ export function LoginForm() {
           disabled={isPending}
           className={fieldErrors.identifier ? 'border-red-500' : ''}
           autoComplete="username"
+          aria-invalid={!!fieldErrors.identifier}
+          aria-describedby={fieldErrors.identifier ? 'identifier-error' : undefined}
+          required
         />
         {fieldErrors.identifier && (
-          <p className="text-sm text-red-600">{fieldErrors.identifier[0]}</p>
+          <p id="identifier-error" className="text-sm text-red-600" role="alert">
+            {fieldErrors.identifier[0]}
+          </p>
         )}
       </div>
 
@@ -72,16 +81,22 @@ export function LoginForm() {
           disabled={isPending}
           className={fieldErrors.password ? 'border-red-500' : ''}
           autoComplete="current-password"
+          aria-invalid={!!fieldErrors.password}
+          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+          required
         />
         {fieldErrors.password && (
-          <p className="text-sm text-red-600">{fieldErrors.password[0]}</p>
+          <p id="password-error" className="text-sm text-red-600" role="alert">
+            {fieldErrors.password[0]}
+          </p>
         )}
       </div>
 
       <Button
         type="submit"
-        className="w-full bg-primary-600 hover:bg-primary-700"
+        className="w-full bg-primary-600 hover:bg-primary-700 min-h-[44px]"
         disabled={isPending}
+        aria-busy={isPending}
       >
         {isPending ? 'Memproses...' : 'Masuk'}
       </Button>

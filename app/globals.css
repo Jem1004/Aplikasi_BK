@@ -57,3 +57,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Smooth transitions for interactive elements */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Enhanced focus indicators for accessibility */
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+  }
+
+  /* Minimum touch target size for mobile */
+  .touch-target {
+    @apply min-w-[44px] min-h-[44px];
+  }
+}
+
+/* Global smooth transitions */
+button, a, input, select, textarea {
+  @apply transition-colors duration-200;
+}
+
+/* Enhanced focus styles for keyboard navigation */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Improve text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

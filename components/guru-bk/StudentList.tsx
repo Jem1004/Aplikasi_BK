@@ -139,17 +139,17 @@ export function StudentList({ students }: StudentListProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredStudents.map((student) => (
-            <Card key={student.id} className="hover:shadow-md transition-shadow">
+            <Card key={student.id} className="hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{student.user.fullName}</CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg truncate">{student.user.fullName}</CardTitle>
                     <CardDescription className="mt-1">
                       NIS: {student.nis}
                     </CardDescription>
                   </div>
                   {student.class && (
-                    <Badge variant="outline">{student.class.name}</Badge>
+                    <Badge variant="outline" className="shrink-0">{student.class.name}</Badge>
                   )}
                 </div>
               </CardHeader>
@@ -157,20 +157,20 @@ export function StudentList({ students }: StudentListProps) {
                 <div className="space-y-3">
                   {/* Violation Summary */}
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2 bg-gray-50 rounded-lg">
+                    <div className="p-2 bg-gray-50 rounded-lg transition-colors duration-200 hover:bg-gray-100">
                       <p className="text-2xl font-bold text-gray-900">
                         {student.summary.totalPoints}
                       </p>
                       <p className="text-xs text-muted-foreground">Total Poin</p>
                     </div>
-                    <div className="p-2 bg-red-50 rounded-lg">
+                    <div className="p-2 bg-red-50 rounded-lg transition-colors duration-200 hover:bg-red-100">
                       <p className="text-2xl font-bold text-red-600">
                         {student.summary.violationCount}
                       </p>
                       <p className="text-xs text-muted-foreground">Pelanggaran</p>
                     </div>
-                    <div className="p-2 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">
+                    <div className="p-2 bg-primary-50 rounded-lg transition-colors duration-200 hover:bg-primary-100">
+                      <p className="text-2xl font-bold text-primary-600">
                         {student.summary.prestationCount}
                       </p>
                       <p className="text-xs text-muted-foreground">Prestasi</p>
@@ -180,13 +180,13 @@ export function StudentList({ students }: StudentListProps) {
                   {/* Actions */}
                   <div className="flex gap-2">
                     <Link href={`/guru-bk/violations/${student.id}`} className="flex-1">
-                      <Button variant="outline" className="w-full" size="sm">
+                      <Button variant="outline" className="w-full min-h-[44px]" size="sm">
                         <Eye className="h-4 w-4 mr-2" />
                         Lihat Detail
                       </Button>
                     </Link>
                     <Link href={`/guru-bk/violations/new?studentId=${student.id}`}>
-                      <Button size="sm">
+                      <Button size="sm" className="min-h-[44px] bg-primary-500 hover:bg-primary-600">
                         <Plus className="h-4 w-4 mr-2" />
                         Catat
                       </Button>

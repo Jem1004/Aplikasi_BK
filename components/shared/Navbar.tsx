@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Menu, User } from "lucide-react";
+import { InstallButton } from "./InstallButton";
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -46,14 +47,15 @@ export async function Navbar({ onMenuClick }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
+    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
       <div className="flex h-16 items-center gap-4 px-4 md:px-6">
-        {/* Mobile menu button */}
+        {/* Mobile menu button - larger touch target */}
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden min-w-[44px] min-h-[44px]"
           onClick={onMenuClick}
+          aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle menu</span>
@@ -61,7 +63,7 @@ export async function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* Logo/Title */}
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-primary-600">
+          <h1 className="text-base sm:text-lg font-semibold text-primary-600">
             Aplikasi BK
           </h1>
         </div>
@@ -72,7 +74,11 @@ export async function Navbar({ onMenuClick }: NavbarProps) {
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 gap-2 px-2">
+            <Button 
+              variant="ghost" 
+              className="relative h-10 gap-2 px-2 min-w-[44px] min-h-[44px]"
+              aria-label="User menu"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary-100 text-primary-700">
                   {initials}
@@ -98,10 +104,11 @@ export async function Navbar({ onMenuClick }: NavbarProps) {
               <User className="mr-2 h-4 w-4" />
               <span>Profil</span>
             </DropdownMenuItem>
+            <InstallButton />
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <form action={handleSignOut} className="w-full">
-                <button type="submit" className="flex w-full items-center">
+                <button type="submit" className="flex w-full items-center min-h-[44px]">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Keluar</span>
                 </button>

@@ -1,0 +1,71 @@
+import { Suspense } from 'react';
+import { getAuditLogs } from '@/lib/actions/admin/audit-logs';
+import { AuditLogList } from '@/components/admin/AuditLogList';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+export const metadata = {
+  title: 'Audit Logs - Admin',
+  description: 'View system audit logs',
+};
+
+interface PageProps {
+  searchParams: Promise<{
+    entityType?: string;
+    entityId?: string;
+    action?: string;
+    userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: string;
+  }>;
+}
+
+export default async function AuditLogsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = params.page ? parseInt(params.page) : 1;
+
+  const result = await getAuditLogs({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    action: params.action,
+    userId: params.userId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    page,
+    pageSize: 50,
+  });
+
+  if (!result.success) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>{result.error}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold">Audit Logs</h1>
+        <p className="text-muted-foreground mt-2">
+          View and search system audit logs
+        </p>
+      </div>
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <AuditLogList
+          logs={result.data?.logs || []}
+          total={result.data?.total || 0}
+          page={result.data?.page || 1}
+          pageSize={result.data?.pageSize || 50}
+          totalPages={result.data?.totalPages || 1}
+        />
+      </Suspense>
+    </div>
+  );
+}

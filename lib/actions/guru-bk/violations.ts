@@ -5,6 +5,11 @@ import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import { Prisma } from '@prisma/client';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from '@/lib/audit/audit-logger';
 
 // Validation schemas
 const createViolationSchema = z.object({
@@ -158,6 +163,9 @@ export async function createViolation(
       };
     }
 
+    // Get session for audit log
+    const session = await auth();
+
     // Create violation record
     const violation = await prisma.violation.create({
       data: {
@@ -167,6 +175,22 @@ export async function createViolation(
         incidentDate: new Date(data.incidentDate),
         description: data.description,
         points: violationType.points,
+      },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.VIOLATION_CREATED,
+      entityType: ENTITY_TYPES.VIOLATION,
+      entityId: violation.id,
+      newValues: {
+        studentId: violation.studentId,
+        violationTypeId: violation.violationTypeId,
+        violationTypeName: violationType.name,
+        incidentDate: violation.incidentDate.toISOString(),
+        points: violation.points,
+        description: violation.description,
       },
     });
 
@@ -265,10 +289,37 @@ export async function updateViolation(
       updateData.description = data.description;
     }
 
+    // Get session for audit log
+    const session = await auth();
+
     // Update violation record
-    await prisma.violation.update({
+    const updatedViolation = await prisma.violation.update({
       where: { id },
       data: updateData,
+      include: {
+        violationType: true,
+      },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.VIOLATION_UPDATED,
+      entityType: ENTITY_TYPES.VIOLATION,
+      entityId: id,
+      oldValues: {
+        violationTypeId: existingViolation.violationTypeId,
+        incidentDate: existingViolation.incidentDate.toISOString(),
+        points: existingViolation.points,
+        description: existingViolation.description,
+      },
+      newValues: {
+        violationTypeId: updatedViolation.violationTypeId,
+        violationTypeName: updatedViolation.violationType.name,
+        incidentDate: updatedViolation.incidentDate.toISOString(),
+        points: updatedViolation.points,
+        description: updatedViolation.description,
+      },
     });
 
     return {
@@ -316,11 +367,29 @@ export async function deleteViolation(id: string): Promise<ActionResponse> {
       };
     }
 
+    // Get session for audit log
+    const session = await auth();
+
     // Soft delete violation
     await prisma.violation.update({
       where: { id },
       data: {
         deletedAt: new Date(),
+      },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.VIOLATION_DELETED,
+      entityType: ENTITY_TYPES.VIOLATION,
+      entityId: id,
+      oldValues: {
+        studentId: violation.studentId,
+        violationTypeId: violation.violationTypeId,
+        incidentDate: violation.incidentDate.toISOString(),
+        points: violation.points,
+        description: violation.description,
       },
     });
 

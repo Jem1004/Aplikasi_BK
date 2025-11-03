@@ -6,12 +6,13 @@ import { CounselingJournalForm } from '@/components/guru-bk/CounselingJournalFor
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function EditJournalPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await auth();
 
   if (!session || session.user.role !== 'GURU_BK') {
@@ -20,7 +21,7 @@ export default async function EditJournalPage({ params }: PageProps) {
 
   // Fetch journal and students
   const [journalResult, studentsResult] = await Promise.all([
-    getCounselingJournalById(params.id),
+    getCounselingJournalById(id),
     getMyStudents(),
   ]);
 

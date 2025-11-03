@@ -2,30 +2,27 @@
 
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/lib/auth/auth';
 import { AuthError } from 'next-auth';
-import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
 import { hash, compare } from 'bcryptjs';
 import { auth } from '@/lib/auth/auth';
-import type { ActionResponse } from '@/types';
-
-// Validation schemas
-const signInSchema = z.object({
-  identifier: z.string().min(1, 'Email atau username harus diisi'),
-  password: z.string().min(1, 'Password harus diisi'),
-});
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Password saat ini harus diisi'),
-  newPassword: z
-    .string()
-    .min(8, 'Password minimal 8 karakter')
-    .regex(/[a-zA-Z]/, 'Password harus mengandung huruf')
-    .regex(/[0-9]/, 'Password harus mengandung angka'),
-  confirmPassword: z.string().min(1, 'Konfirmasi password harus diisi'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Password tidak cocok',
-  path: ['confirmPassword'],
-});
+import { 
+  loginSchema, 
+  changePasswordSchema,
+  type LoginInput,
+  type ChangePasswordInput 
+} from '@/lib/validations';
+import {
+  type ActionResponse,
+  createSuccessResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+  ERROR_MESSAGES,
+  logError,
+  mapZodErrorsToFields,
+  mapErrorToMessage,
+} from '@/lib/errors';
+import { loginRateLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit';
+import { headers } from 'next/headers';
 
 /**
  * Sign in action
@@ -35,17 +32,23 @@ export async function signIn(
   formData: FormData
 ): Promise<ActionResponse<{ redirectUrl: string }>> {
   try {
+    // Rate limiting check
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimitResult = await checkRateLimit(loginRateLimiter, clientIp);
+    
+    if (!rateLimitResult.success) {
+      return createErrorResponse(rateLimitResult.error!);
+    }
+
     // Validate input
-    const validatedFields = signInSchema.safeParse({
+    const validatedFields = loginSchema.safeParse({
       identifier: formData.get('identifier'),
       password: formData.get('password'),
     });
 
     if (!validatedFields.success) {
-      return {
-        success: false,
-        errors: validatedFields.error.flatten().fieldErrors,
-      };
+      return createValidationErrorResponse(mapZodErrorsToFields(validatedFields.error));
     }
 
     const { identifier, password } = validatedFields.data;
@@ -61,10 +64,7 @@ export async function signIn(
     const session = await auth();
     
     if (!session || !session.user) {
-      return {
-        success: false,
-        error: 'Email/username atau password salah',
-      };
+      return createErrorResponse(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     // Determine redirect URL based on role
@@ -84,31 +84,20 @@ export async function signIn(
         break;
     }
 
-    return {
-      success: true,
-      data: { redirectUrl },
-    };
+    return createSuccessResponse({ redirectUrl });
   } catch (error) {
+    logError(error, { action: 'signIn', identifier: formData.get('identifier') as string });
+    
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return {
-            success: false,
-            error: 'Email/username atau password salah',
-          };
+          return createErrorResponse(ERROR_MESSAGES.INVALID_CREDENTIALS);
         default:
-          return {
-            success: false,
-            error: 'Terjadi kesalahan. Silakan coba lagi',
-          };
+          return createErrorResponse(ERROR_MESSAGES.SERVER_ERROR);
       }
     }
     
-    console.error('Sign in error:', error);
-    return {
-      success: false,
-      error: 'Terjadi kesalahan. Silakan coba lagi',
-    };
+    return createErrorResponse(mapErrorToMessage(error));
   }
 }
 
@@ -120,15 +109,10 @@ export async function signOut(): Promise<ActionResponse> {
   try {
     await nextAuthSignOut({ redirect: false });
     
-    return {
-      success: true,
-    };
+    return createSuccessResponse();
   } catch (error) {
-    console.error('Sign out error:', error);
-    return {
-      success: false,
-      error: 'Terjadi kesalahan saat logout',
-    };
+    logError(error, { action: 'signOut' });
+    return createErrorResponse(mapErrorToMessage(error));
   }
 }
 
@@ -139,16 +123,17 @@ export async function signOut(): Promise<ActionResponse> {
 export async function changePassword(
   formData: FormData
 ): Promise<ActionResponse> {
+  let userId: string | undefined;
+  
   try {
     // Check authentication
     const session = await auth();
     
     if (!session || !session.user) {
-      return {
-        success: false,
-        error: 'Anda harus login terlebih dahulu',
-      };
+      return createErrorResponse(ERROR_MESSAGES.UNAUTHORIZED);
     }
+
+    userId = session.user.id;
 
     // Validate input
     const validatedFields = changePasswordSchema.safeParse({
@@ -158,10 +143,7 @@ export async function changePassword(
     });
 
     if (!validatedFields.success) {
-      return {
-        success: false,
-        errors: validatedFields.error.flatten().fieldErrors,
-      };
+      return createValidationErrorResponse(mapZodErrorsToFields(validatedFields.error));
     }
 
     const { currentPassword, newPassword } = validatedFields.data;
@@ -173,20 +155,14 @@ export async function changePassword(
     });
 
     if (!user) {
-      return {
-        success: false,
-        error: 'User tidak ditemukan',
-      };
+      return createErrorResponse(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Verify current password
     const isPasswordValid = await compare(currentPassword, user.passwordHash);
 
     if (!isPasswordValid) {
-      return {
-        success: false,
-        error: 'Password saat ini salah',
-      };
+      return createErrorResponse('Password saat ini salah');
     }
 
     // Hash new password
@@ -198,14 +174,9 @@ export async function changePassword(
       data: { passwordHash: hashedPassword },
     });
 
-    return {
-      success: true,
-    };
+    return createSuccessResponse();
   } catch (error) {
-    console.error('Change password error:', error);
-    return {
-      success: false,
-      error: 'Terjadi kesalahan. Silakan coba lagi',
-    };
+    logError(error, { action: 'changePassword', userId });
+    return createErrorResponse(mapErrorToMessage(error));
   }
 }

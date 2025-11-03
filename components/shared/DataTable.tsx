@@ -69,9 +69,9 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="region" aria-label="Data table">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Search */}
         {searchKey && (
           <Input
@@ -80,15 +80,20 @@ export function DataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
+            aria-label={`Search ${searchKey}`}
           />
         )}
 
         {/* Column visibility */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Kolom <ChevronDown className="ml-2 h-4 w-4" />
+            <Button 
+              variant="outline" 
+              className="w-full sm:ml-auto sm:w-auto min-h-[44px]"
+              aria-label="Toggle column visibility"
+            >
+              Kolom <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -111,15 +116,15 @@ export function DataTable<TData, TValue>({
         </DropdownMenu>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border bg-white">
+      {/* Table - with horizontal scroll on mobile */}
+      <div className="rounded-md border bg-white overflow-x-auto" role="region" aria-label="Table content" tabIndex={0}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="whitespace-nowrap">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -140,7 +145,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-nowrap">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -157,34 +162,37 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
+      {/* Pagination - responsive layout */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" role="navigation" aria-label="Table pagination">
+        <div className="text-sm text-muted-foreground text-center sm:text-left" aria-live="polite">
           {table.getFilteredSelectedRowModel().rows.length} dari{" "}
           {table.getFilteredRowModel().rows.length} baris dipilih.
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center gap-2 sm:justify-end">
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            className="min-w-[44px] min-h-[44px]"
+            aria-label="Go to previous page"
           >
-            <ChevronLeft className="h-4 w-4" />
-            Sebelumnya
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only sm:ml-1">Sebelumnya</span>
           </Button>
-          <div className="text-sm">
-            Halaman {table.getState().pagination.pageIndex + 1} dari{" "}
-            {table.getPageCount()}
+          <div className="text-sm whitespace-nowrap px-2" aria-live="polite">
+            Hal {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            className="min-w-[44px] min-h-[44px]"
+            aria-label="Go to next page"
           >
-            Selanjutnya
-            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only sm:not-sr-only sm:mr-1">Selanjutnya</span>
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>

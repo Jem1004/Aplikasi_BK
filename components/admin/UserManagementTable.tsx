@@ -157,18 +157,18 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Table - Desktop view with horizontal scroll */}
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Info Tambahan</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableHead className="whitespace-nowrap">Nama</TableHead>
+              <TableHead className="whitespace-nowrap">Email</TableHead>
+              <TableHead className="whitespace-nowrap">Username</TableHead>
+              <TableHead className="whitespace-nowrap">Role</TableHead>
+              <TableHead className="whitespace-nowrap">Info Tambahan</TableHead>
+              <TableHead className="whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -181,15 +181,15 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
             ) : (
               filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.fullName}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
+                  <TableCell className="whitespace-nowrap">{user.email}</TableCell>
+                  <TableCell className="whitespace-nowrap">{user.username}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant={roleColors[user.role]}>
                       {roleLabels[user.role]}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {user.teacher?.nip && (
                       <span className="text-sm text-muted-foreground">
                         NIP: {user.teacher.nip}
@@ -204,17 +204,19 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant={user.isActive ? 'default' : 'secondary'}>
                       {user.isActive ? 'Aktif' : 'Nonaktif'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(user.id)}
+                        className="min-w-[44px] min-h-[44px]"
+                        aria-label={`Edit ${user.fullName}`}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -222,6 +224,8 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteClick(user.id)}
+                        className="min-w-[44px] min-h-[44px]"
+                        aria-label={`Hapus ${user.fullName}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

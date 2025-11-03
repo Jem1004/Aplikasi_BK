@@ -5,6 +5,11 @@ import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import { Prisma, PermissionType } from '@prisma/client';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from '@/lib/audit/audit-logger';
 
 // Validation schemas
 const createPermissionSchema = z.object({
@@ -236,6 +241,24 @@ export async function createPermission(
         timeStyle: 'short',
       }),
     };
+
+    // Get session for audit log
+    const session = await auth();
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.PERMISSION_CREATED,
+      entityType: ENTITY_TYPES.PERMISSION,
+      entityId: permission.id,
+      newValues: {
+        studentId: permission.studentId,
+        studentName: student.user.fullName,
+        permissionType: permission.permissionType,
+        permissionDate: permission.permissionDate.toISOString(),
+        reason: permission.reason,
+      },
+    });
 
     return {
       success: true,

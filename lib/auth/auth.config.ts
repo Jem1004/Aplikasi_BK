@@ -11,6 +11,15 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password harus diisi'),
 });
 
+/**
+ * NextAuth.js Configuration
+ * 
+ * Security Features:
+ * - JWT strategy with 1-hour expiration
+ * - Secure cookie settings (httpOnly, sameSite: lax, secure in production)
+ * - CSRF protection is built-in to Next.js Server Actions
+ * - Session invalidation on logout
+ */
 export const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
@@ -101,6 +110,17 @@ export const authConfig: NextAuthConfig = {
   session: {
     strategy: 'jwt',
     maxAge: 60 * 60, // 1 hour
+  },
+  cookies: {
+    sessionToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

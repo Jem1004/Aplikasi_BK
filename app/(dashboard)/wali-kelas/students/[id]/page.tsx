@@ -13,9 +13,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 async function getStudentData(studentId: string) {
@@ -50,7 +50,8 @@ async function getStudentData(studentId: string) {
 }
 
 export default async function StudentDetailPage({ params }: PageProps) {
-  const data = await getStudentData(params.id);
+  const { id } = await params;
+  const data = await getStudentData(id);
 
   if (!data) {
     notFound();

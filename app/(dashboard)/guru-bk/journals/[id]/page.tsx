@@ -4,12 +4,13 @@ import { getCounselingJournalById } from '@/lib/actions/guru-bk/journals';
 import { CounselingJournalViewer } from '@/components/guru-bk/CounselingJournalViewer';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function JournalDetailPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await auth();
 
   if (!session || session.user.role !== 'GURU_BK') {
@@ -17,7 +18,7 @@ export default async function JournalDetailPage({ params }: PageProps) {
   }
 
   // Fetch journal
-  const journalResult = await getCounselingJournalById(params.id);
+  const journalResult = await getCounselingJournalById(id);
 
   if (!journalResult.success) {
     return (
@@ -36,7 +37,7 @@ export default async function JournalDetailPage({ params }: PageProps) {
     );
   }
 
-  const journal = journalResult.data;
+  const journal = journalResult.data!;
 
   return (
     <div className="p-6">

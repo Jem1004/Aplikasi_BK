@@ -16,15 +16,15 @@ export default async function ViolationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Pelanggaran</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Pelanggaran</h1>
           <p className="text-muted-foreground mt-2">
             Kelola pelanggaran dan prestasi siswa binaan
           </p>
         </div>
-        <Link href="/guru-bk/violations/new">
-          <Button>
+        <Link href="/guru-bk/violations/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
             Catat Pelanggaran
           </Button>

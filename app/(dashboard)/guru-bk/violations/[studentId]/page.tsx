@@ -7,13 +7,13 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     studentId: string;
-  };
+  }>;
 };
 
 export default async function StudentViolationHistoryPage({ params }: PageProps) {
-  const { studentId } = params;
+  const { studentId } = await params;
 
   // Get student info
   const student = await prisma.student.findUnique({

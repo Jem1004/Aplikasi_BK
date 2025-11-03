@@ -14,15 +14,15 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Pengguna</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Pengguna</h1>
           <p className="text-muted-foreground mt-2">
             Kelola akun pengguna sistem
           </p>
         </div>
-        <Link href="/admin/users/new">
-          <Button>
+        <Link href="/admin/users/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto min-h-[44px]">
             <UserPlus className="mr-2 h-4 w-4" />
             Tambah Pengguna
           </Button>

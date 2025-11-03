@@ -5,6 +5,11 @@ import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import { Prisma, AppointmentStatus } from '@prisma/client';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from '@/lib/audit/audit-logger';
 
 // Validation schemas
 const rescheduleAppointmentSchema = z.object({
@@ -191,12 +196,25 @@ export async function approveAppointment(
       };
     }
 
+    // Get session for audit log
+    const session = await auth();
+
     // Update appointment status to APPROVED
     await prisma.appointment.update({
       where: { id },
       data: {
         status: 'APPROVED',
       },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.APPOINTMENT_APPROVED,
+      entityType: ENTITY_TYPES.APPOINTMENT,
+      entityId: id,
+      oldValues: { status: appointment.status },
+      newValues: { status: 'APPROVED' },
     });
 
     return {

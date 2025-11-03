@@ -31,7 +31,7 @@ async function getDashboardData() {
 
   // Get violation summary
   const summaryResult = await getMyViolationSummary();
-  const violationSummary = summaryResult.success ? summaryResult.data : {
+  const violationSummary = summaryResult.success && summaryResult.data ? summaryResult.data : {
     totalPoints: 0,
     violationCount: 0,
     prestationCount: 0,
