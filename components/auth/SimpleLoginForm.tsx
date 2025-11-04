@@ -117,7 +117,7 @@ export function SimpleLoginForm() {
     <form onSubmit={handleSubmit} className="space-y-6" aria-label="Login form">
       {error && (
         <div
-          className="rounded-lg bg-red-50 p-4 text-sm text-red-800"
+          className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700"
           role="alert"
           aria-live="assertive"
         >
@@ -153,7 +153,7 @@ export function SimpleLoginForm() {
 
       <Button
         type="submit"
-        className="w-full bg-primary-600 hover:bg-primary-700 min-h-[44px]"
+        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white min-h-[44px] font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
         disabled={isPending || !isMounted || !csrfToken}
         aria-busy={isPending}
       >
