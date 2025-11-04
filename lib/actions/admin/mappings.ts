@@ -85,9 +85,12 @@ export async function assignStudentToCounselor(
   formData: FormData
 ): Promise<ActionResponse> {
   try {
+    console.log('Starting assignStudentToCounselor with formData:', formData);
+
     // Check authorization
     const authCheck = await checkAdminAuth();
     if (!authCheck.success) {
+      console.error('Authorization failed:', authCheck);
       return authCheck;
     }
 
@@ -95,22 +98,29 @@ export async function assignStudentToCounselor(
     const studentIdsRaw = formData.get('studentIds');
     const studentIds = studentIdsRaw ? JSON.parse(studentIdsRaw as string) : [];
 
+    console.log('Parsed studentIds:', studentIds);
+
     const rawData = {
       studentIds,
       counselorId: formData.get('counselorId'),
       academicYearId: formData.get('academicYearId'),
     };
 
+    console.log('Raw data for validation:', rawData);
+
     const validatedFields = assignStudentToCounselorSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
+      console.error('Validation failed:', validatedFields.error.flatten());
       return {
         success: false,
+        error: 'Data yang dimasukkan tidak valid',
         errors: validatedFields.error.flatten().fieldErrors,
       };
     }
 
     const data = validatedFields.data;
+    console.log('Validated data:', data);
 
     // Verify counselor exists and has GURU_BK role
     const counselor = await prisma.teacher.findUnique({
@@ -118,10 +128,21 @@ export async function assignStudentToCounselor(
       include: { user: true },
     });
 
-    if (!counselor || counselor.user.role !== 'GURU_BK') {
+    console.log('Found counselor:', counselor);
+
+    if (!counselor) {
+      console.error('Counselor not found with ID:', data.counselorId);
       return {
         success: false,
         error: 'Guru BK tidak ditemukan',
+      };
+    }
+
+    if (counselor.user.role !== 'GURU_BK') {
+      console.error('Counselor has invalid role:', counselor.user.role);
+      return {
+        success: false,
+        error: 'Guru yang dipilih bukan Guru BK',
       };
     }
 
@@ -130,7 +151,10 @@ export async function assignStudentToCounselor(
       where: { id: data.academicYearId },
     });
 
+    console.log('Found academic year:', academicYear);
+
     if (!academicYear) {
+      console.error('Academic year not found with ID:', data.academicYearId);
       return {
         success: false,
         error: 'Tahun ajaran tidak ditemukan',
@@ -145,7 +169,10 @@ export async function assignStudentToCounselor(
       },
     });
 
+    console.log('Found students:', students.length, 'out of', data.studentIds.length);
+
     if (students.length !== data.studentIds.length) {
+      console.error('Some students not found');
       return {
         success: false,
         error: 'Beberapa siswa tidak ditemukan',
@@ -156,24 +183,38 @@ export async function assignStudentToCounselor(
     const session = await auth();
 
     // Create assignments in a transaction
+    console.log('Starting transaction to create assignments...');
+
     await prisma.$transaction(async (tx) => {
       // Remove existing assignments for these students in this academic year
-      await tx.studentCounselorAssignment.deleteMany({
+      console.log('Removing existing assignments...');
+      const deletedAssignments = await tx.studentCounselorAssignment.deleteMany({
         where: {
           studentId: { in: data.studentIds },
           academicYearId: data.academicYearId,
         },
       });
 
+      console.log('Deleted existing assignments:', deletedAssignments.count);
+
       // Create new assignments
-      await tx.studentCounselorAssignment.createMany({
-        data: data.studentIds.map((studentId) => ({
-          studentId,
-          counselorId: data.counselorId,
-          academicYearId: data.academicYearId,
-        })),
+      console.log('Creating new assignments...');
+      const assignmentData = data.studentIds.map((studentId) => ({
+        studentId,
+        counselorId: data.counselorId,
+        academicYearId: data.academicYearId,
+      }));
+
+      console.log('Assignment data to create:', assignmentData);
+
+      const createdAssignments = await tx.studentCounselorAssignment.createMany({
+        data: assignmentData,
       });
+
+      console.log('Created new assignments:', createdAssignments.count);
     });
+
+    console.log('Transaction completed successfully');
 
     // Log audit event
     await logAuditEvent({
@@ -190,8 +231,14 @@ export async function assignStudentToCounselor(
       },
     });
 
+    console.log('Assignment process completed successfully');
     return {
       success: true,
+      data: {
+        message: `${data.studentIds.length} siswa berhasil ditugaskan ke ${counselor.user.fullName}`,
+        studentCount: data.studentIds.length,
+        counselorName: counselor.user.fullName,
+      },
     };
   } catch (error) {
     console.error('Assign student to counselor error:', error);

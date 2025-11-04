@@ -2,7 +2,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { getUsers } from '@/lib/actions/admin/users';
 import Link from 'next/link';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Upload } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,12 +42,20 @@ export default async function UsersPage() {
             Kelola akun pengguna sistem
           </p>
         </div>
-        <Link href="/admin/users/new" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto min-h-[44px]">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Tambah Pengguna
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Link href="/admin/users/import" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
+              <Upload className="mr-2 h-4 w-4" />
+              Import Siswa
+            </Button>
+          </Link>
+          <Link href="/admin/users/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto min-h-[44px]">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Tambah Pengguna
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <UserManagementTable users={result.data || []} />

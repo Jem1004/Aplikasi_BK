@@ -100,80 +100,215 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
   }, [selectedAcademicYearId]);
 
   async function loadCounselors() {
-    const result = await getCounselors();
-    if (result.success && result.data) {
-      setCounselors(result.data);
+    try {
+      const result = await getCounselors();
+      if (result.success && result.data) {
+        setCounselors(result.data);
+      } else {
+        console.error('Failed to load counselors:', result);
+        toast({
+          title: 'Error',
+          description: 'Gagal memuat data Guru BK',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading counselors:', error);
+      toast({
+        title: 'Error',
+        description: 'Terjadi kesalahan saat memuat data Guru BK',
+        variant: 'destructive',
+      });
     }
   }
 
   async function loadStudents(academicYearId: string) {
     setIsLoading(true);
-    const result = await getUnassignedStudents(academicYearId);
-    if (result.success && result.data) {
-      setStudents(result.data);
+    try {
+      const result = await getUnassignedStudents(academicYearId);
+      if (result.success && result.data) {
+        setStudents(result.data);
+      } else {
+        console.error('Failed to load students:', result);
+        toast({
+          title: 'Error',
+          description: 'Gagal memuat data siswa',
+          variant: 'destructive',
+        });
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error loading students:', error);
+      toast({
+        title: 'Error',
+        description: 'Terjadi kesalahan saat memuat data siswa',
+        variant: 'destructive',
+      });
+      setStudents([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   async function loadAssignments(academicYearId: string) {
-    const result = await getStudentCounselorAssignments({
-      academicYearId,
-    });
-    if (result.success && result.data) {
-      setAssignments(result.data);
+    try {
+      const result = await getStudentCounselorAssignments({
+        academicYearId,
+      });
+      if (result.success && result.data) {
+        setAssignments(result.data);
+      } else {
+        console.error('Failed to load assignments:', result);
+        toast({
+          title: 'Error',
+          description: 'Gagal memuat data assignment',
+          variant: 'destructive',
+        });
+        setAssignments([]);
+      }
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+      toast({
+        title: 'Error',
+        description: 'Terjadi kesalahan saat memuat data assignment',
+        variant: 'destructive',
+      });
+      setAssignments([]);
     }
   }
 
   function toggleStudentSelection(studentId: string) {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId)
+    setSelectedStudents((prev) => {
+      const newSelection = prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
-    );
+        : [...prev, studentId];
+      
+      // Update form field as well
+      form.setValue('studentIds', newSelection);
+      return newSelection;
+    });
   }
 
   function toggleAllStudents() {
-    if (selectedStudents.length === students.length) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(students.map((s) => s.id));
-    }
+    const newSelection = selectedStudents.length === students.length
+      ? []
+      : students.map((s) => s.id);
+    
+    setSelectedStudents(newSelection);
+    // Update form field as well
+    form.setValue('studentIds', newSelection);
   }
 
   async function onSubmit(values: MappingFormValues) {
-    setIsSubmitting(true);
+    console.log('onSubmit called with values:', values);
+    console.log('Selected students:', selectedStudents);
 
-    const formData = new FormData();
-    formData.append('studentIds', JSON.stringify(selectedStudents));
-    formData.append('counselorId', values.counselorId);
-    formData.append('academicYearId', values.academicYearId);
-
-    const result = await assignStudentToCounselor(formData);
-
-    if (result.success) {
+    // Validate form before submission
+    if (selectedStudents.length === 0) {
+      console.warn('No students selected');
       toast({
-        title: 'Berhasil',
-        description: 'Siswa berhasil ditugaskan ke Guru BK',
-      });
-      
-      // Reset form and reload data
-      setSelectedStudents([]);
-      form.reset({
-        studentIds: [],
-        counselorId: '',
-        academicYearId: values.academicYearId,
-      });
-      loadStudents(values.academicYearId);
-      loadAssignments(values.academicYearId);
-    } else {
-      toast({
-        title: 'Gagal',
-        description: result.error || 'Terjadi kesalahan',
+        title: 'Validasi Gagal',
+        description: 'Pilih minimal satu siswa untuk ditugaskan',
         variant: 'destructive',
       });
+      return;
     }
 
-    setIsSubmitting(false);
+    if (!values.counselorId) {
+      console.warn('No counselor selected');
+      toast({
+        title: 'Validasi Gagal',
+        description: 'Pilih Guru BK terlebih dahulu',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!values.academicYearId) {
+      console.warn('No academic year selected');
+      toast({
+        title: 'Validasi Gagal',
+        description: 'Pilih tahun ajaran terlebih dahulu',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    console.log('All validations passed, starting submission...');
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('studentIds', JSON.stringify(selectedStudents));
+      formData.append('counselorId', values.counselorId);
+      formData.append('academicYearId', values.academicYearId);
+
+      console.log('FormData prepared:', {
+        studentIds: selectedStudents,
+        counselorId: values.counselorId,
+        academicYearId: values.academicYearId,
+      });
+
+      console.log('Calling assignStudentToCounselor...');
+      const result = await assignStudentToCounselor(formData);
+
+      console.log('Mapping result received:', result);
+
+      if (result.success) {
+        console.log('Mapping successful!');
+        const successCount = selectedStudents.length;
+        
+        toast({
+          title: 'Berhasil',
+          description: `${successCount} siswa berhasil ditugaskan ke Guru BK`,
+        });
+
+        // Reset form and reload data
+        setSelectedStudents([]);
+        form.reset({
+          studentIds: [],
+          counselorId: '',
+          academicYearId: values.academicYearId,
+        });
+
+        console.log('Reloading data...');
+        // Reload data immediately
+        await Promise.all([
+          loadStudents(values.academicYearId),
+          loadAssignments(values.academicYearId)
+        ]);
+      } else {
+        console.error('Mapping failed:', result);
+
+        let errorMessage = 'Terjadi kesalahan';
+
+        if (result.error) {
+          errorMessage = result.error;
+        } else if (result.errors && Object.keys(result.errors).length > 0) {
+          // Handle validation errors
+          const errorMessages = Object.entries(result.errors)
+            .map(([field, errors]) => `${field}: ${errors?.join(', ')}`)
+            .join('; ');
+          errorMessage = errorMessages;
+        }
+
+        toast({
+          title: 'Gagal',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error during mapping:', error);
+      toast({
+        title: 'Error',
+        description: 'Terjadi kesalahan tak terduga. Silakan coba lagi',
+        variant: 'destructive',
+      });
+    } finally {
+      console.log('Submission complete, resetting isSubmitting');
+      setIsSubmitting(false);
+    }
   }
 
   async function handleDelete(assignmentId: string) {
@@ -216,7 +351,14 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form 
+              onSubmit={(e) => {
+                console.log('Form submit event triggered');
+                e.preventDefault();
+                form.handleSubmit(onSubmit)(e);
+              }} 
+              className="space-y-4"
+            >
               <FormField
                 control={form.control}
                 name="academicYearId"
@@ -230,11 +372,17 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {academicYears.map((ay) => (
-                          <SelectItem key={ay.id} value={ay.id}>
-                            {ay.name} {ay.isActive && '(Aktif)'}
-                          </SelectItem>
-                        ))}
+                        {academicYears.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground text-center">
+                            Tidak ada tahun ajaran tersedia
+                          </div>
+                        ) : (
+                          academicYears.map((ay) => (
+                            <SelectItem key={ay.id} value={ay.id}>
+                              {ay.name} {ay.isActive && '(Aktif)'}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -255,12 +403,18 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {counselors.map((counselor) => (
-                          <SelectItem key={counselor.id} value={counselor.id}>
-                            {counselor.user.fullName}
-                            {counselor.nip && ` (${counselor.nip})`}
-                          </SelectItem>
-                        ))}
+                        {counselors.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground text-center">
+                            Tidak ada Guru BK tersedia
+                          </div>
+                        ) : (
+                          counselors.map((counselor) => (
+                            <SelectItem key={counselor.id} value={counselor.id}>
+                              {counselor.user.fullName}
+                              {counselor.nip && ` (${counselor.nip})`}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -314,18 +468,58 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
                     </div>
                   </div>
                 )}
-                {selectedStudents.length === 0 && !isLoading && students.length > 0 && (
-                  <p className="text-sm text-destructive">Pilih minimal satu siswa</p>
+                        {!isLoading && students.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedStudents.length === 0 && (
+                      <p className="text-sm text-amber-600 flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                        Pilih minimal satu siswa untuk ditugaskan
+                      </p>
+                    )}
+                    {counselors.length === 0 && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                        Tidak ada Guru BK tersedia. Hubungi admin untuk menambahkan Guru BK.
+                      </p>
+                    )}
+                    {academicYears.length === 0 && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                        Tidak ada tahun ajaran tersedia. Hubungi admin untuk menambahkan tahun ajaran.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  {selectedStudents.length > 0 && (
+                    <span>{selectedStudents.length} siswa dipilih</span>
+                  )}
+                </div>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || selectedStudents.length === 0}
+                  disabled={
+                    isSubmitting ||
+                    selectedStudents.length === 0 ||
+                    counselors.length === 0 ||
+                    !form.watch('counselorId') ||
+                    !form.watch('academicYearId')
+                  }
+                  className="min-w-[120px]"
                 >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Tugaskan Siswa
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Tugaskan Siswa
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
@@ -336,15 +530,24 @@ export function StudentCounselorMapping({ academicYears }: StudentCounselorMappi
       {/* Current Assignments */}
       <Card>
         <CardHeader>
-          <CardTitle>Assignment Saat Ini</CardTitle>
-          <CardDescription>
-            Daftar siswa yang sudah ditugaskan ke Guru BK
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Assignment Saat Ini</CardTitle>
+              <CardDescription>
+                Daftar siswa yang sudah ditugaskan ke Guru BK
+              </CardDescription>
+            </div>
+            <Badge variant="secondary">
+              {assignments.length} Assignment
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {assignments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Belum ada assignment untuk tahun ajaran ini
+              <UserPlus className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="font-medium">Belum ada assignment</p>
+              <p className="text-sm">Belum ada siswa yang ditugaskan ke Guru BK untuk tahun ajaran ini</p>
             </div>
           ) : (
             <div className="border rounded-md">
