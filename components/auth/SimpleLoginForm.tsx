@@ -62,6 +62,9 @@ export function SimpleLoginForm() {
         setError('Login gagal. Silakan periksa kredensial Anda.');
       } else if (result?.ok) {
         // Login successful, redirect based on user role
+        // Add delay to ensure session is properly established
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const sessionResponse = await fetch('/api/auth/session');
         const session = await sessionResponse.json();
 
@@ -88,7 +91,32 @@ export function SimpleLoginForm() {
           router.push(callbackUrl !== '/' ? callbackUrl : redirectUrl);
           router.refresh();
         } else {
-          setError('Login berhasil tetapi sesi tidak ditemukan. Silakan refresh halaman.');
+          // Retry session fetching once more
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const retrySessionResponse = await fetch('/api/auth/session');
+          const retrySession = await retrySessionResponse.json();
+
+          if (retrySession?.user) {
+            let redirectUrl = '/';
+            switch (retrySession.user.role) {
+              case 'ADMIN':
+                redirectUrl = '/admin';
+                break;
+              case 'GURU_BK':
+                redirectUrl = '/guru-bk';
+                break;
+              case 'WALI_KELAS':
+                redirectUrl = '/wali-kelas';
+                break;
+              case 'SISWA':
+                redirectUrl = '/siswa';
+                break;
+            }
+            router.push(callbackUrl !== '/' ? callbackUrl : redirectUrl);
+            router.refresh();
+          } else {
+            setError('Login berhasil tetapi sesi tidak ditemukan. Silakan refresh halaman.');
+          }
         }
       } else {
         setError('Login gagal. Terjadi kesalahan yang tidak diketahui.');
