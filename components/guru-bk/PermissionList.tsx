@@ -186,8 +186,20 @@ export function PermissionList({ schoolInfoMissing }: PermissionListProps) {
         const result = await getPermissions();
 
         if (result.success && result.data) {
-          // Skip sanitization for now to debug
-          setPermissions(result.data as Permission[]);
+          // Convert Date objects to strings for compatibility
+          const formattedPermissions = result.data.map(permission => ({
+            ...permission,
+            permissionDate: permission.permissionDate instanceof Date
+              ? permission.permissionDate.toISOString()
+              : permission.permissionDate,
+            startTime: permission.startTime instanceof Date
+              ? permission.startTime.toISOString().slice(11, 19)
+              : permission.startTime,
+            endTime: permission.endTime instanceof Date
+              ? permission.endTime.toISOString().slice(11, 19)
+              : permission.endTime,
+          }));
+          setPermissions(formattedPermissions);
         }
       } catch (error) {
         console.error('Failed to load data:', error);

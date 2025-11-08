@@ -40,6 +40,10 @@ export default async function EditViolationPage({ params }: PageProps) {
 
   const violation = violationResult.data;
 
+  if (!violation) {
+    notFound();
+  }
+
   // Get active violation types
   const violationTypes = await prisma.violationType.findMany({
     where: {
