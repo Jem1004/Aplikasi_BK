@@ -6,6 +6,8 @@ import { getMyAppointments } from '@/lib/actions/siswa/appointments';
 import { Plus, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+export const dynamic = 'force-dynamic';
+
 // Cache appointments for 30 seconds
 // Appointments change frequently
 export const revalidate = 30;

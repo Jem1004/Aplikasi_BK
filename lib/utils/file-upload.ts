@@ -18,9 +18,9 @@ import { existsSync } from 'fs';
 export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
 
 /**
- * Maximum file size (2MB)
+ * Maximum file size (4MB)
  */
-export const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
+export const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB in bytes
 
 /**
  * File validation result

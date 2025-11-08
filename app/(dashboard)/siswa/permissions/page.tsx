@@ -3,6 +3,8 @@ import { MyPermissionList } from '@/components/siswa/MyPermissionList';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 // Cache permissions for 1 minute (60 seconds)
 // Permissions are created frequently
 export const revalidate = 60;

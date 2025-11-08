@@ -3,6 +3,8 @@ import { getMyClassStudents } from "@/lib/actions/wali-kelas/students";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 // Cache student list for 2 minutes (120 seconds)
 // Student assignments change occasionally
 export const revalidate = 120;

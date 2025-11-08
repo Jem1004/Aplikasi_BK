@@ -243,19 +243,40 @@ export async function uploadSchoolLogo(
       );
     }
 
+    // Ensure upload directory exists
+    try {
+      const { ensureUploadDir } = await import('@/lib/utils/file-upload');
+      await ensureUploadDir('uploads/school');
+    } catch (dirError) {
+      console.error('Failed to ensure upload directory:', dirError);
+      return createErrorResponse('Gagal membuat direktori upload');
+    }
+
     // Save file and replace old logo if exists
-    const { publicPath: logoPath } = await replaceFile(
-      file,
-      schoolInfo.logoPath,
-      'uploads/school',
-      'school-logo'
-    );
+    let logoPath: string;
+    try {
+      const result = await replaceFile(
+        file,
+        schoolInfo.logoPath,
+        'uploads/school',
+        'school-logo'
+      );
+      logoPath = result.publicPath;
+    } catch (fileError) {
+      console.error('Failed to save file:', fileError);
+      return createErrorResponse('Gagal menyimpan file logo');
+    }
 
     // Update school info with new logo path
-    await prisma.schoolInfo.update({
-      where: { id: schoolInfo.id },
-      data: { logoPath },
-    });
+    try {
+      await prisma.schoolInfo.update({
+        where: { id: schoolInfo.id },
+        data: { logoPath },
+      });
+    } catch (dbError) {
+      console.error('Failed to update database:', dbError);
+      return createErrorResponse('Gagal memperbarui data sekolah');
+    }
 
     // Log audit event
     await logAuditEvent({
@@ -269,8 +290,19 @@ export async function uploadSchoolLogo(
 
     return createSuccessResponse({ logoPath });
   } catch (error) {
+    console.error('Upload logo error:', error);
     logError(error, { action: 'uploadSchoolLogo', resource: 'school_info' });
-    return createErrorResponse(mapErrorToMessage(error));
+
+    // Better error handling
+    let errorMessage = 'Terjadi kesalahan saat mengunggah logo';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      if (process.env.NODE_ENV === 'development') {
+        errorMessage = `Error: ${error.message}`;
+      }
+    }
+
+    return createErrorResponse(errorMessage);
   }
 }
 

@@ -165,7 +165,13 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react'],
+    // Configure server actions body size limit for file uploads (5MB)
+    serverActions: {
+      bodySizeLimit: 5 * 1024 * 1024, // 5MB
+    },
   },
+  // Force dynamic rendering for authenticated routes to prevent static generation issues
+  output: 'standalone',
   // Add headers to fix caching issues
   async headers() {
     return [

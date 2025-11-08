@@ -29,6 +29,7 @@ interface PageProps {
 
 export default async function StudentDetailPage({ params }: PageProps) {
   const session = await auth();
+  const resolvedParams = await params;
 
   if (!session?.user?.teacherId) {
     redirect('/unauthorized');
@@ -36,7 +37,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
 
   // Get student data
   const student = await prisma.student.findUnique({
-    where: { id: params.studentId },
+    where: { id: resolvedParams.studentId },
     include: {
       user: {
         select: {
@@ -77,8 +78,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
   }
 
   // Get violations
-  const violationsResult = await getStudentViolations(params.studentId);
-  const summaryResult = await getStudentViolationSummary(params.studentId);
+  const violationsResult = await getStudentViolations(resolvedParams.studentId);
+  const summaryResult = await getStudentViolationSummary(resolvedParams.studentId);
 
   const violations = violationsResult.success ? violationsResult.data : [];
   const summary = summaryResult.success ? summaryResult.data : null;
@@ -281,19 +282,19 @@ export default async function StudentDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/guru-bk/violations/new?studentId=${params.studentId}`}>
+            <Link href={`/guru-bk/violations/new?studentId=${resolvedParams.studentId}`}>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Catat Pelanggaran
               </Button>
             </Link>
-            <Link href={`/guru-bk/journals/new?studentId=${params.studentId}`}>
+            <Link href={`/guru-bk/journals/new?studentId=${resolvedParams.studentId}`}>
               <Button variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
                 Buat Jurnal
               </Button>
             </Link>
-            <Link href={`/guru-bk/permissions/new?studentId=${params.studentId}`}>
+            <Link href={`/guru-bk/permissions/new?studentId=${resolvedParams.studentId}`}>
               <Button variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
                 Buat Izin

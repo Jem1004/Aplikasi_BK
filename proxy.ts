@@ -40,7 +40,7 @@ export default auth((req) => {
   }
 
   // Check if user must change password (except on change password pages)
-  if (session && session.user.mustChangePassword) {
+  if (session && session.user && session.user.mustChangePassword) {
     const changePasswordPaths = [
       '/admin/settings',
       '/guru-bk/settings',
@@ -67,13 +67,16 @@ export default auth((req) => {
         case 'SISWA':
           settingsUrl = '/siswa/profile';
           break;
+        default:
+          settingsUrl = '/';
+          break;
       }
       return NextResponse.redirect(new URL(settingsUrl, req.url));
     }
   }
 
   // Role-based route protection
-  if (session) {
+  if (session && session.user) {
     const userRole = session.user.role;
 
     // Admin routes

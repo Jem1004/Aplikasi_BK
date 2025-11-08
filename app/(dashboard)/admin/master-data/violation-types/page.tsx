@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { getViolationTypes } from '@/lib/actions/admin/master-data';
 import { ViolationTypeActions } from '@/components/admin/ViolationTypeActions';
 
+export const dynamic = 'force-dynamic';
+
 // Cache violation types data for 5 minutes (300 seconds)
 // Violation types change infrequently, so longer cache is appropriate
 export const revalidate = 300;

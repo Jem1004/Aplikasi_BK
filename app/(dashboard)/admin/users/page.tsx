@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { getUsers } from '@/lib/actions/admin/users';
 import Link from 'next/link';
@@ -7,7 +7,9 @@ import { redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 
-const UserManagementTable = dynamic(
+export const dynamic = 'force-dynamic';
+
+const UserManagementTable = dynamicImport(
   () => import('@/components/admin/UserManagementTable').then(mod => ({ default: mod.UserManagementTable })),
   {
     loading: () => (

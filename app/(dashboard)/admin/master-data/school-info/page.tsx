@@ -6,6 +6,8 @@ import { SchoolInfoForm } from '@/components/admin/SchoolInfoForm';
 import { getSchoolInfo } from '@/lib/actions/admin/school-info';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 
+export const dynamic = 'force-dynamic';
+
 // Cache school info data for 5 minutes (300 seconds)
 // School info changes infrequently, so longer cache is appropriate
 export const revalidate = 300;

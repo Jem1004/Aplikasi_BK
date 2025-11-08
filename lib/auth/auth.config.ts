@@ -21,6 +21,7 @@ const loginSchema = z.object({
  * - Session invalidation on logout
  */
 export const authConfig: NextAuthConfig = {
+  trustHost: true, // Allow localhost and configured NEXTAUTH_URL
   providers: [
     Credentials({
       name: 'credentials',
@@ -78,7 +79,7 @@ export const authConfig: NextAuthConfig = {
             role: user.role,
             teacherId: user.teacher?.id || null,
             studentId: user.student?.id || null,
-            mustChangePassword: user.mustChangePassword,
+            mustChangePassword: Boolean(user.mustChangePassword),
           };
         } catch (error) {
           console.error('Authorization error:', error);
@@ -104,13 +105,13 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      // Add custom fields to session
-      if (token && session.user) {
+      // Add custom fields to session with defensive checks
+      if (token && session?.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
         session.user.teacherId = token.teacherId as string | null;
         session.user.studentId = token.studentId as string | null;
-        session.user.mustChangePassword = token.mustChangePassword as boolean;
+        session.user.mustChangePassword = Boolean(token.mustChangePassword);
       }
       return session;
     },

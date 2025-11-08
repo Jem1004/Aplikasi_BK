@@ -14,6 +14,8 @@ import { Users, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 // Cache student list for 2 minutes (120 seconds)
 export const revalidate = 120;
 

@@ -7,7 +7,7 @@ export async function GET() {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error?.message || 'Failed to fetch school info' },
+        { error: result.error || 'Failed to fetch school info' },
         { status: 500 }
       );
     }

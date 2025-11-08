@@ -83,7 +83,11 @@ async function checkAdminAuth() {
  */
 export async function assignStudentToCounselor(
   formData: FormData
-): Promise<ActionResponse> {
+): Promise<ActionResponse<{
+  message: string;
+  studentCount: number;
+  counselorName: string;
+}>> {
   try {
     console.log('Starting assignStudentToCounselor with formData:', formData);
 

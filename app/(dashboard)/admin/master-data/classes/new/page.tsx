@@ -1,8 +1,10 @@
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { getAcademicYears } from '@/lib/actions/admin/master-data';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const ClassForm = dynamic(
+export const dynamic = 'force-dynamic';
+
+const ClassForm = dynamicImport(
   () => import('@/components/admin/ClassForm').then(mod => ({ default: mod.ClassForm })),
   {
     loading: () => (

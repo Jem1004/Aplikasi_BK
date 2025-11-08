@@ -75,11 +75,11 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
       return;
     }
 
-    // Validate file size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (4MB - under 5MB server limit)
+    if (file.size > 4 * 1024 * 1024) {
       toast({
         title: 'Error',
-        description: 'Ukuran file maksimal 2MB',
+        description: 'Ukuran file maksimal 4MB',
         variant: 'destructive',
       });
       return;
@@ -102,10 +102,14 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
     setIsUploadingLogo(true);
 
     try {
+      console.log('Starting logo upload for file:', selectedFile.name);
+
       const formData = new FormData();
       formData.append('logo', selectedFile);
 
+      console.log('Calling uploadSchoolLogo...');
       const result = await uploadSchoolLogo(formData);
+      console.log('Upload result:', result);
 
       if (result.success) {
         toast({
@@ -115,6 +119,7 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
         setSelectedFile(null);
         router.refresh();
       } else {
+        console.error('Upload failed:', result.error);
         toast({
           title: 'Gagal',
           description: result.error || 'Gagal mengunggah logo',
@@ -124,6 +129,7 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
         setLogoPreview(initialData?.logoPath || null);
       }
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: 'Error',
         description: 'Terjadi kesalahan saat mengunggah logo',
@@ -221,7 +227,7 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
           <CardHeader>
             <CardTitle>Logo Sekolah</CardTitle>
             <CardDescription>
-              Upload logo sekolah (opsional). Format: PNG, JPG, JPEG. Maksimal 2MB.
+              Upload logo sekolah (opsional). Format: PNG, JPG, JPEG. Maksimal 4MB.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

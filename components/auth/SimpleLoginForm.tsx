@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { signIn } from 'next-auth/react';
 
 export function SimpleLoginForm() {
   const router = useRouter();
@@ -13,23 +14,17 @@ export function SimpleLoginForm() {
 
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [csrfToken, setCsrfToken] = useState<string>('');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    // Get CSRF token
-    fetch('/api/auth/csrf')
-      .then(res => res.json())
-      .then(data => setCsrfToken(data.csrfToken))
-      .catch(err => console.error('Failed to get CSRF token:', err));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    if (!isMounted || !csrfToken) {
+    if (!isMounted) {
       setError('Form is loading. Please wait...');
       return;
     }
@@ -50,27 +45,23 @@ export function SimpleLoginForm() {
         return;
       }
 
-      console.log('Submitting form to NextAuth...');
+      console.log('Attempting sign in with NextAuth...');
 
-      // Submit to NextAuth API directly
-      const response = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          identifier,
-          password,
-          redirect: 'false',
-          csrfToken,
-          json: 'true',
-        }),
+      // Use NextAuth signIn for better mobile compatibility
+      const result = await signIn('credentials', {
+        identifier,
+        password,
+        redirect: false,
+        callbackUrl: callbackUrl !== '/' ? callbackUrl : undefined,
       });
 
-      console.log('NextAuth response:', response.status);
+      console.log('SignIn result:', result);
 
-      if (response.ok) {
-        // Login successful, check session
+      if (result?.error) {
+        console.error('Sign in error:', result.error);
+        setError('Login gagal. Silakan periksa kredensial Anda.');
+      } else if (result?.ok) {
+        // Login successful, redirect based on user role
         const sessionResponse = await fetch('/api/auth/session');
         const session = await sessionResponse.json();
 
@@ -100,13 +91,11 @@ export function SimpleLoginForm() {
           setError('Login berhasil tetapi sesi tidak ditemukan. Silakan refresh halaman.');
         }
       } else {
-        const errorData = await response.text();
-        console.error('Login failed:', errorData);
-        setError('Login gagal. Silakan periksa kredensial Anda.');
+        setError('Login gagal. Terjadi kesalahan yang tidak diketahui.');
       }
     } catch (err) {
       console.error('Form submission error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan server. Silakan coba lagi.';
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan koneksi. Silakan coba lagi.';
       setError(errorMessage);
     } finally {
       setIsPending(false);
@@ -132,7 +121,7 @@ export function SimpleLoginForm() {
           name="identifier"
           type="text"
           placeholder="Masukkan email atau username"
-          disabled={isPending || !isMounted || !csrfToken}
+          disabled={isPending || !isMounted}
           autoComplete="username"
           required
         />
@@ -145,7 +134,7 @@ export function SimpleLoginForm() {
           name="password"
           type="password"
           placeholder="Masukkan password"
-          disabled={isPending || !isMounted || !csrfToken}
+          disabled={isPending || !isMounted}
           autoComplete="current-password"
           required
         />
@@ -154,10 +143,10 @@ export function SimpleLoginForm() {
       <Button
         type="submit"
         className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white min-h-[44px] font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
-        disabled={isPending || !isMounted || !csrfToken}
+        disabled={isPending || !isMounted}
         aria-busy={isPending}
       >
-        {!isMounted ? 'Loading...' : !csrfToken ? 'Preparing...' : isPending ? 'Memproses...' : 'Masuk'}
+        {!isMounted ? 'Loading...' : isPending ? 'Memproses...' : 'Masuk'}
       </Button>
     </form>
   );

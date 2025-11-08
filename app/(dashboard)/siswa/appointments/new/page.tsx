@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getMyCounselor } from '@/lib/actions/siswa/appointments';
@@ -9,7 +9,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const AppointmentBookingForm = dynamic(() => import('@/components/siswa/AppointmentBookingForm').then(mod => ({ default: mod.AppointmentBookingForm })), {
+export const dynamic = 'force-dynamic';
+
+const AppointmentBookingForm = dynamicImport(() => import('@/components/siswa/AppointmentBookingForm').then(mod => ({ default: mod.AppointmentBookingForm })), {
   loading: () => (
     <div className="space-y-6">
       <Card>
