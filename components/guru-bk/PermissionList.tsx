@@ -5,8 +5,21 @@ import dynamic from 'next/dynamic';
 import { getPermissions, getPermissionPrintData } from '@/lib/actions/guru-bk/permissions';
 import type { PermissionPrintData } from '@/lib/actions/guru-bk/permissions';
 import { Button } from '@/components/ui/button';
-import { Plus, FileText, Printer, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, FileText, Printer, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { deletePermission } from '@/lib/actions/guru-bk/permissions';
+import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -163,15 +176,18 @@ export function PermissionList({ schoolInfoMissing }: PermissionListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [printData, setPrintData] = useState<PermissionPrintData | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function loadData() {
       try {
         // Load permissions
         const result = await getPermissions();
+
         if (result.success && result.data) {
-          const sanitized = result.data.map(permission => sanitizePermission(permission));
-          setPermissions(sanitized);
+          // Skip sanitization for now to debug
+          setPermissions(result.data as Permission[]);
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -201,6 +217,39 @@ export function PermissionList({ schoolInfoMissing }: PermissionListProps) {
     setPrintData(null);
   };
 
+  const handleDelete = async (permissionId: string) => {
+    setDeletingId(permissionId);
+
+    try {
+      const result = await deletePermission(permissionId);
+
+      if (result.success) {
+        toast({
+          title: 'Berhasil',
+          description: 'Data izin berhasil dihapus',
+        });
+
+        // Remove the deleted permission from the list
+        setPermissions(prev => prev.filter(p => p.id !== permissionId));
+      } else {
+        toast({
+          title: 'Gagal',
+          description: result.error || 'Terjadi kesalahan',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Delete permission error:', error);
+      toast({
+        title: 'Gagal',
+        description: 'Terjadi kesalahan. Silakan coba lagi',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -211,17 +260,6 @@ export function PermissionList({ schoolInfoMissing }: PermissionListProps) {
 
   return (
     <>
-      {/* Warning if school info is missing */}
-      {schoolInfoMissing && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Informasi sekolah belum diatur. Kartu izin akan menggunakan placeholder text.
-            Silakan hubungi administrator untuk mengatur informasi sekolah di Master Data.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Permissions Table */}
       <div className="bg-white rounded-lg border">
         {permissions.length === 0 ? (
@@ -303,15 +341,52 @@ export function PermissionList({ schoolInfoMissing }: PermissionListProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePrint(permission.id)}
-                      disabled={isPrinting}
-                    >
-                      <Printer className="h-4 w-4 mr-2" />
-                      Cetak
-                    </Button>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePrint(permission.id)}
+                        disabled={isPrinting}
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        Cetak
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={deletingId === permission.id}
+                          >
+                            {deletingId === permission.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Hapus Data Izin?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Apakah Anda yakin ingin menghapus data izin untuk {permission.student?.user?.fullName}?
+                              Tindakan ini tidak dapat dibatalkan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(permission.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Hapus
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               )) : (

@@ -406,6 +406,72 @@ export async function deleteViolation(id: string): Promise<ActionResponse> {
 }
 
 /**
+ * Get violation details by ID
+ * Guru BK only, for violations they created
+ */
+export async function getViolationById(
+  id: string
+): Promise<ActionResponse<ViolationWithDetails>> {
+  try {
+    // Check authorization
+    const authCheck = await checkGuruBKAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const teacherId = authCheck.teacherId;
+
+    // Get violation with related data
+    const violation = await prisma.violation.findUnique({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+        violationType: true,
+        recorder: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!violation) {
+      return {
+        success: false,
+        error: 'Data pelanggaran tidak ditemukan',
+      };
+    }
+
+    // Check if the violation was created by this teacher
+    if (violation.recordedBy !== teacherId) {
+      return {
+        success: false,
+        error: 'Anda tidak memiliki akses untuk melihat data ini',
+      };
+    }
+
+    return {
+      success: true,
+      data: violation,
+    };
+  } catch (error) {
+    console.error('Get violation by ID error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
  * Get violations for a specific student
  * Guru BK only, for assigned students
  */

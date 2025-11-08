@@ -324,6 +324,7 @@ export async function getPermissions(filters?: {
   try {
     // Check authorization
     const authCheck = await checkGuruBKAuth();
+
     if (!authCheck.success) {
       return authCheck;
     }
@@ -512,6 +513,78 @@ export async function getPermissionPrintData(
     };
   } catch (error) {
     console.error('Get permission print data error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
+ * Delete a permission
+ * Guru BK only, for permissions they created
+ */
+export async function deletePermission(
+  id: string
+): Promise<ActionResponse> {
+  try {
+    // Check authorization
+    const authCheck = await checkGuruBKAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const teacherId = authCheck.teacherId;
+
+    // Check if permission exists and was created by this teacher
+    const permission = await prisma.permission.findUnique({
+      where: { id },
+    });
+
+    if (!permission) {
+      return {
+        success: false,
+        error: 'Data izin tidak ditemukan',
+      };
+    }
+
+    if (permission.issuedBy !== teacherId) {
+      return {
+        success: false,
+        error: 'Anda tidak memiliki akses untuk menghapus data ini',
+      };
+    }
+
+    // Get session for audit log
+    const session = await auth();
+
+    // Hard delete permission (since schema doesn't have deletedAt)
+    await prisma.permission.delete({
+      where: { id },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: AUDIT_ACTIONS.PERMISSION_DELETED,
+      entityType: ENTITY_TYPES.PERMISSION,
+      entityId: id,
+      oldValues: {
+        studentId: permission.studentId,
+        permissionType: permission.permissionType,
+        permissionDate: permission.permissionDate.toISOString(),
+        reason: permission.reason,
+        startTime: permission.startTime.toISOString(),
+        endTime: permission.endTime?.toISOString(),
+        destination: permission.destination,
+      },
+    });
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Delete permission error:', error);
     return {
       success: false,
       error: 'Terjadi kesalahan. Silakan coba lagi',

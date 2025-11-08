@@ -129,8 +129,11 @@ export function ViolationForm({
           title: 'Berhasil',
           description: 'Data pelanggaran berhasil dicatat',
         });
-        router.push(`/guru-bk/violations/${values.studentId}`);
-        router.refresh();
+
+        // Add a small delay to ensure the toast is shown before redirect
+        setTimeout(() => {
+          router.push(`/guru-bk/violations/${values.studentId}`);
+        }, 500);
       } else {
         toast({
           title: 'Gagal',
@@ -151,7 +154,10 @@ export function ViolationForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit(onSubmit)(e);
+      }} className="space-y-6">
         {/* Student Selection */}
         <FormField
           control={form.control}
