@@ -47,8 +47,7 @@ export default async function EditViolationPage({ params }: PageProps) {
   // Get active violation types
   const violationTypes = await prisma.violationType.findMany({
     where: {
-      isActive: true,
-      deletedAt: null,
+      isActive: true
     },
     orderBy: [
       { type: 'asc' },

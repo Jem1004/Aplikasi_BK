@@ -224,7 +224,7 @@ export async function createPermission(
       },
     });
 
-    if (!student || student.deletedAt) {
+    if (!student) {
       return {
         success: false,
         error: 'Data siswa tidak ditemukan',

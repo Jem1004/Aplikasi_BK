@@ -30,16 +30,24 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('=== AUTHORIZE CALLED ===');
+        console.log('Credentials:', {
+          identifier: credentials?.identifier,
+          password: credentials?.password ? `[${(credentials.password as string).length} chars]` : 'undefined',
+        });
+        
         try {
           // Validate credentials
           const validatedFields = loginSchema.safeParse(credentials);
 
           if (!validatedFields.success) {
-            console.warn('Invalid credentials format:', validatedFields.error.errors);
+            console.warn('❌ Invalid credentials format:', validatedFields.error.errors);
             return null;
           }
 
           const { identifier, password } = validatedFields.data;
+          console.log('✅ Credentials validated');
+          console.log('Searching for user with identifier:', identifier);
 
           // Find user by email or username
           const user = await prisma.user.findFirst({
@@ -57,22 +65,37 @@ export const authConfig: NextAuthConfig = {
             },
           });
 
+          console.log('User search result:', user ? {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            role: user.role,
+            isActive: user.isActive,
+            hasPasswordHash: !!user.passwordHash,
+          } : '❌ USER NOT FOUND');
+
           if (!user) {
-            console.log('User not found for identifier:', identifier);
+            console.log('❌ User not found for identifier:', identifier);
             return null;
           }
 
+          console.log('🔐 Verifying password...');
+          console.log('Password from form:', password);
+          console.log('Password hash from DB:', user.passwordHash.substring(0, 30) + '...');
+          
           // Verify password
           const isPasswordValid = await compare(password, user.passwordHash);
 
+          console.log('🔐 Password verification result:', isPasswordValid);
+
           if (!isPasswordValid) {
-            console.log('Invalid password for user:', identifier);
+            console.log('❌ Invalid password for user:', identifier);
             return null;
           }
 
           // Return user object with necessary fields
-          console.log('User authenticated successfully:', user.email);
-          return {
+          console.log('✅ User authenticated successfully:', user.email);
+          const authUser = {
             id: user.id,
             email: user.email,
             name: user.fullName,
@@ -81,8 +104,10 @@ export const authConfig: NextAuthConfig = {
             studentId: user.student?.id || null,
             mustChangePassword: Boolean(user.mustChangePassword),
           };
+          console.log('✅ Returning auth user:', authUser);
+          return authUser;
         } catch (error) {
-          console.error('Authorization error:', error);
+          console.error('💥 Authorization error:', error);
           return null;
         }
       },

@@ -88,8 +88,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   const journalsCount = await prisma.counselingJournal.count({
     where: {
       studentId: params.studentId,
-      counselorId: session.user.teacherId,
-      deletedAt: null,
+      counselorId: session.user.teacherId
     },
   });
 

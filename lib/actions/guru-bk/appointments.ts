@@ -101,8 +101,7 @@ export async function getMyAppointments(
 
     // Build where clause
     const where: Prisma.AppointmentWhereInput = {
-      counselorId: teacherId,
-      deletedAt: null,
+      counselorId: teacherId
     };
 
     if (filters?.status) {
@@ -175,7 +174,7 @@ export async function approveAppointment(
       where: { id },
     });
 
-    if (!appointment || appointment.deletedAt) {
+    if (!appointment ) {
       return {
         success: false,
         error: 'Janji temu tidak ditemukan',
@@ -267,7 +266,7 @@ export async function rejectAppointment(
       where: { id },
     });
 
-    if (!appointment || appointment.deletedAt) {
+    if (!appointment ) {
       return {
         success: false,
         error: 'Janji temu tidak ditemukan',
@@ -349,7 +348,7 @@ export async function rescheduleAppointment(
       where: { id },
     });
 
-    if (!appointment || appointment.deletedAt) {
+    if (!appointment ) {
       return {
         success: false,
         error: 'Janji temu tidak ditemukan',
@@ -374,8 +373,7 @@ export async function rescheduleAppointment(
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         counselorId: teacherId,
-        appointmentDate: new Date(data.appointmentDate),
-        deletedAt: null,
+        appointmentDate: new Date(data.appointmentDate)
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },
@@ -456,7 +454,7 @@ export async function completeAppointment(
       where: { id },
     });
 
-    if (!appointment || appointment.deletedAt) {
+    if (!appointment ) {
       return {
         success: false,
         error: 'Janji temu tidak ditemukan',
@@ -528,8 +526,7 @@ export async function getAvailableSlots(
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         counselorId: teacherId,
-        appointmentDate: new Date(date),
-        deletedAt: null,
+        appointmentDate: new Date(date)
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },

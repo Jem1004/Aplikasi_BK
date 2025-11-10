@@ -155,7 +155,7 @@ export async function updateAcademicYear(
 export async function deleteAcademicYear(id: string): Promise<ActionResponse> {
   try {
     const session = await auth();
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' };
     }
@@ -172,13 +172,37 @@ export async function deleteAcademicYear(id: string): Promise<ActionResponse> {
       };
     }
 
-    await prisma.academicYear.update({
+    // Check if academic year has homeroom teachers
+    const homeroomTeacherCount = await prisma.classHomeroomTeacher.count({
+      where: { academicYearId: id },
+    });
+
+    if (homeroomTeacherCount > 0) {
+      return {
+        success: false,
+        error: 'Tidak dapat menghapus tahun ajaran yang memiliki wali kelas terkait',
+      };
+    }
+
+    // Check if academic year has student counselor assignments
+    const counselorAssignmentCount = await prisma.studentCounselorAssignment.count({
+      where: { academicYearId: id },
+    });
+
+    if (counselorAssignmentCount > 0) {
+      return {
+        success: false,
+        error: 'Tidak dapat menghapus tahun ajaran yang memiliki penugasan konselor siswa terkait',
+      };
+    }
+
+    // Delete the academic year (hard delete since no soft delete is implemented)
+    await prisma.academicYear.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     revalidatePath('/admin/master-data');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting academic year:', error);
@@ -224,7 +248,6 @@ export async function getAcademicYears(): Promise<ActionResponse<any[]>> {
     }
 
     const academicYears = await prisma.academicYear.findMany({
-      where: { deletedAt: null },
       orderBy: { startDate: 'desc' },
     });
 
@@ -274,8 +297,7 @@ export async function createClass(
     const existing = await prisma.class.findFirst({
       where: {
         name: validated.data.name,
-        academicYearId: validated.data.academicYearId,
-        deletedAt: null,
+        academicYearId: validated.data.academicYearId
       },
     });
 
@@ -334,7 +356,6 @@ export async function updateClass(
       where: {
         name: validated.data.name,
         academicYearId: validated.data.academicYearId,
-        deletedAt: null,
         id: { not: id },
       },
     });
@@ -367,7 +388,7 @@ export async function updateClass(
 export async function deleteClass(id: string): Promise<ActionResponse> {
   try {
     const session = await auth();
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' };
     }
@@ -384,13 +405,25 @@ export async function deleteClass(id: string): Promise<ActionResponse> {
       };
     }
 
-    await prisma.class.update({
+    // Check if class has homeroom teachers
+    const homeroomTeacherCount = await prisma.classHomeroomTeacher.count({
+      where: { classId: id },
+    });
+
+    if (homeroomTeacherCount > 0) {
+      return {
+        success: false,
+        error: 'Tidak dapat menghapus kelas yang memiliki wali kelas terkait',
+      };
+    }
+
+    // Delete the class (hard delete since no soft delete is implemented)
+    await prisma.class.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     revalidatePath('/admin/master-data');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting class:', error);
@@ -408,7 +441,6 @@ export async function getClasses(academicYearId?: string): Promise<ActionRespons
 
     const classes = await prisma.class.findMany({
       where: {
-        deletedAt: null,
         ...(academicYearId && { academicYearId }),
       },
       include: {
@@ -484,8 +516,7 @@ export async function createViolationType(
     // Check for duplicate code
     const existing = await prisma.violationType.findFirst({
       where: {
-        code: validated.data.code,
-        deletedAt: null,
+        code: validated.data.code
       },
     });
 
@@ -551,7 +582,6 @@ export async function updateViolationType(
     const existing = await prisma.violationType.findFirst({
       where: {
         code: validated.data.code,
-        deletedAt: null,
         id: { not: id },
       },
     });
@@ -588,7 +618,7 @@ export async function updateViolationType(
 export async function deleteViolationType(id: string): Promise<ActionResponse> {
   try {
     const session = await auth();
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' };
     }
@@ -605,13 +635,13 @@ export async function deleteViolationType(id: string): Promise<ActionResponse> {
       };
     }
 
-    await prisma.violationType.update({
+    // Delete the violation type (hard delete since no soft delete is implemented)
+    await prisma.violationType.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     revalidatePath('/admin/master-data');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting violation type:', error);
@@ -632,7 +662,6 @@ export async function getViolationTypes(filters?: {
 
     const violationTypes = await prisma.violationType.findMany({
       where: {
-        deletedAt: null,
         ...(filters?.type && { type: filters.type }),
         ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
       },

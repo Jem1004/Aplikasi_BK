@@ -28,7 +28,7 @@ async function getStudentData(studentId: string) {
     },
   });
 
-  if (!student || student.deletedAt) {
+  if (!student ) {
     return null;
   }
 

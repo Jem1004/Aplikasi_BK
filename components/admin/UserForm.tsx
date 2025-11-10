@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createUser, updateUser } from '@/lib/actions/admin/users';
 import { Role } from '@prisma/client';
 import { Loader2 } from 'lucide-react';
+import { useNavigationHelper, REDIRECT_URLS } from '@/lib/utils/redirects';
 
 const userFormSchema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -74,6 +75,7 @@ const roleLabels: Record<Role, string> = {
 export function UserForm({ mode, userId, defaultValues, classes = [] }: UserFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const navigationHelper = useNavigationHelper();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<UserFormValues>({
@@ -119,18 +121,10 @@ export function UserForm({ mode, userId, defaultValues, classes = [] }: UserForm
     }
 
     if (result?.success) {
-      toast({
-        title: 'Berhasil',
-        description: mode === 'create' ? 'Pengguna berhasil dibuat' : 'Pengguna berhasil diperbarui',
-      });
-      router.push('/admin/users');
-      router.refresh();
+      const successMessage = mode === 'create' ? 'Pengguna berhasil dibuat' : 'Pengguna berhasil diperbarui';
+      await navigationHelper.handleSuccess(REDIRECT_URLS.USERS, successMessage);
     } else {
-      toast({
-        title: 'Gagal',
-        description: result?.error || 'Terjadi kesalahan',
-        variant: 'destructive',
-      });
+      navigationHelper.handleError(result?.error, 'Gagal memperbarui pengguna');
     }
 
     setIsSubmitting(false);

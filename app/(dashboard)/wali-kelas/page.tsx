@@ -30,10 +30,13 @@ async function getDashboardData() {
 
   const teacherId = session.user.teacherId;
 
-  // Get class info
+  // Get class info for active academic year
   const homeroomAssignment = await prisma.classHomeroomTeacher.findFirst({
     where: {
       teacherId,
+      academicYear: {
+        isActive: true,
+      },
     },
     include: {
       class: true,
@@ -57,7 +60,6 @@ async function getDashboardData() {
       student: {
         classId: homeroomAssignment?.classId,
       },
-      deletedAt: null,
     },
     include: {
       student: {

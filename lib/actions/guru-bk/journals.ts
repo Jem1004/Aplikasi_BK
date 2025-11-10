@@ -356,8 +356,7 @@ export async function getMyCounselingJournals(
 
     // Build where clause
     const where: any = {
-      counselorId: session.user.teacherId,
-      deletedAt: null,
+      counselorId: session.user.teacherId
     };
 
     if (filters?.studentId) {
@@ -482,7 +481,7 @@ export async function getCounselingJournalById(
       },
     });
 
-    if (!journal || journal.deletedAt) {
+    if (!journal ) {
       return { success: false, error: ERROR_MESSAGES.NOT_FOUND };
     }
 

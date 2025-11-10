@@ -168,8 +168,7 @@ export async function assignStudentToCounselor(
     // Verify all students exist
     const students = await prisma.student.findMany({
       where: {
-        id: { in: data.studentIds },
-        deletedAt: null,
+        id: { in: data.studentIds }
       },
     });
 
@@ -593,10 +592,8 @@ export async function getCounselors(): Promise<
       where: {
         user: {
           role: 'GURU_BK',
-          deletedAt: null,
           isActive: true,
-        },
-        deletedAt: null,
+        }
       },
       include: {
         user: true,
@@ -643,10 +640,8 @@ export async function getHomeroomTeachers(): Promise<
       where: {
         user: {
           role: 'WALI_KELAS',
-          deletedAt: null,
           isActive: true,
-        },
-        deletedAt: null,
+        }
       },
       include: {
         user: true,
@@ -697,10 +692,8 @@ export async function getUnassignedStudents(
     // Get all students who don't have an assignment for this academic year
     const students = await prisma.student.findMany({
       where: {
-        deletedAt: null,
         user: {
-          isActive: true,
-          deletedAt: null,
+          isActive: true
         },
         counselorAssignments: {
           none: {

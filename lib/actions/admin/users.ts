@@ -471,6 +471,100 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
 }
 
 /**
+ * Reactivate a soft-deleted user
+ * Admin only
+ */
+export async function reactivateUser(userId: string): Promise<ActionResponse> {
+  try {
+    // Check authorization
+    const authCheck = await checkAdminAuth();
+    if (!authCheck.success) {
+      return authCheck.error;
+    }
+
+    // Check if user exists and is inactive
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        teacher: true,
+        student: true,
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        error: 'User tidak ditemukan',
+      };
+    }
+
+    if (user.isActive) {
+      return {
+        success: false,
+        error: 'User sudah aktif',
+      };
+    }
+
+    // Reactivate user and related records in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Reactivate user
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: null,  // Clear deletion timestamp
+          isActive: true,   // Reactivate user
+        },
+      });
+
+      // Reactivate teacher if exists and was deleted
+      if (user.teacher) {
+        await tx.teacher.update({
+          where: { userId: userId },
+          data: {
+            deletedAt: null,  // Clear deletion timestamp
+          },
+        });
+      }
+
+      // Reactivate student if exists and was deleted
+      if (user.student) {
+        await tx.student.update({
+          where: { userId: userId },
+          data: {
+            deletedAt: null,  // Clear deletion timestamp
+          },
+        });
+      }
+    });
+
+    // Log audit event
+    const session = await auth();
+    if (session?.user) {
+      await logAuditEvent({
+        userId: session.user.id,
+        action: AUDIT_ACTIONS.USER_REACTIVATED,
+        entityType: ENTITY_TYPES.USER,
+        entityId: userId,
+        newValues: {
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Reactivate user error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
  * Get all users with optional filters
  * Admin only
  */
@@ -524,6 +618,163 @@ export async function getUsers(filters?: {
     };
   } catch (error) {
     console.error('Get users error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
+ * Get soft-deleted users (trash bin)
+ * Admin only
+ */
+export async function getDeletedUsers(filters?: {
+  role?: Role;
+  search?: string;
+}): Promise<ActionResponse<UserWithRelations[]>> {
+  try {
+    // Check authorization
+    const authCheck = await checkAdminAuth<UserWithRelations[]>();
+    if (!authCheck.success) {
+      return authCheck.error;
+    }
+
+    // Build where clause for deleted users
+    const where: Prisma.UserWhereInput = {
+      deletedAt: { not: null },
+    };
+
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { fullName: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { username: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Fetch deleted users
+    const users = await prisma.user.findMany({
+      where,
+      include: {
+        teacher: true,
+        student: {
+          include: {
+            class: true,
+          },
+        },
+      },
+      orderBy: {
+        deletedAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      data: users,
+    };
+  } catch (error) {
+    console.error('Get deleted users error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
+ * Permanently delete a user
+ * Admin only - DANGER: This cannot be undone
+ */
+export async function permanentDeleteUser(userId: string): Promise<ActionResponse> {
+  try {
+    // Check authorization
+    const authCheck = await checkAdminAuth();
+    if (!authCheck.success) {
+      return authCheck.error;
+    }
+
+    // Check if user exists and is already soft deleted
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        teacher: true,
+        student: true,
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        error: 'User tidak ditemukan',
+      };
+    }
+
+    if (!user.deletedAt) {
+      return {
+        success: false,
+        error: 'User belum dihapus secara temporary. Gunakan tombol Nonaktifkan terlebih dahulu.',
+      };
+    }
+
+    // Prevent deleting own account even if soft deleted
+    const session = await auth();
+    if (session?.user?.id === userId) {
+      return {
+        success: false,
+        error: 'Anda tidak dapat menghapus akun sendiri secara permanent',
+      };
+    }
+
+    // Store old values for audit log before permanent deletion
+    const oldValues = sanitizeForAudit({
+      email: user.email,
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role,
+      deletedAt: user.deletedAt,
+    });
+
+    // Permanent delete in a transaction (cascade delete)
+    await prisma.$transaction(async (tx) => {
+      // Delete teacher record if exists
+      if (user.teacher) {
+        await tx.teacher.delete({
+          where: { userId: userId },
+        });
+      }
+
+      // Delete student record if exists
+      if (user.student) {
+        await tx.student.delete({
+          where: { userId: userId },
+        });
+      }
+
+      // Delete the user record permanently
+      await tx.user.delete({
+        where: { id: userId },
+      });
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      userId: session?.user?.id,
+      action: 'USER_PERMANENTLY_DELETED',
+      entityType: ENTITY_TYPES.USER,
+      entityId: userId,
+      oldValues,
+    });
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Permanent delete user error:', error);
     return {
       success: false,
       error: 'Terjadi kesalahan. Silakan coba lagi',

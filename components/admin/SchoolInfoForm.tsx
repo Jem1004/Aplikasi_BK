@@ -31,14 +31,17 @@ import {
 import type { SchoolInfo } from '@prisma/client';
 import { Loader2, Upload, X, Building2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useNavigationHelper, REDIRECT_URLS } from '@/lib/utils/redirects';
 
 interface SchoolInfoFormProps {
   initialData?: SchoolInfo | null;
+  onSuccess?: () => void;
 }
 
-export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
+export function SchoolInfoForm({ initialData, onSuccess }: SchoolInfoFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const navigationHelper = useNavigationHelper();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDeletingLogo, setIsDeletingLogo] = useState(false);
@@ -184,13 +187,15 @@ export function SchoolInfoForm({ initialData }: SchoolInfoFormProps) {
       const result = await upsertSchoolInfo(values);
 
       if (result.success) {
-        toast({
-          title: 'Berhasil',
-          description: initialData
-            ? 'Informasi sekolah berhasil diperbarui'
-            : 'Informasi sekolah berhasil dibuat',
-        });
-        router.refresh();
+        const successMessage = initialData
+          ? 'Informasi sekolah berhasil diperbarui'
+          : 'Informasi sekolah berhasil dibuat';
+
+        await navigationHelper.handleSuccess(
+          REDIRECT_URLS.SCHOOL_INFO,
+          successMessage,
+          { onSuccess }
+        );
       } else {
         if (result.errors) {
           // Set field errors

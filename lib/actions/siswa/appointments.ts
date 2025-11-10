@@ -139,8 +139,7 @@ export async function createAppointment(
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         counselorId: counselorId,
-        appointmentDate: new Date(data.appointmentDate),
-        deletedAt: null,
+        appointmentDate: new Date(data.appointmentDate)
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },
@@ -221,7 +220,7 @@ export async function cancelAppointment(
       where: { id },
     });
 
-    if (!appointment || appointment.deletedAt) {
+    if (!appointment ) {
       return {
         success: false,
         error: 'Janji temu tidak ditemukan',
@@ -282,8 +281,7 @@ export async function getMyAppointments(
 
     // Build where clause
     const where: Prisma.AppointmentWhereInput = {
-      studentId: studentId,
-      deletedAt: null,
+      studentId: studentId
     };
 
     if (filters?.status) {
@@ -429,8 +427,7 @@ export async function getCounselorAvailableSlots(
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         counselorId: counselorId,
-        appointmentDate: new Date(date),
-        deletedAt: null,
+        appointmentDate: new Date(date)
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },

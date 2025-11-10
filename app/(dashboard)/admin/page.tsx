@@ -12,17 +12,15 @@ export const revalidate = 60;
 async function getAdminStats() {
   const [totalUsers, totalStudents, totalGuruBK, totalClasses] = await Promise.all([
     prisma.user.count({
-      where: { deletedAt: null, isActive: true },
+      where: { isActive: true },
     }),
     prisma.user.count({
-      where: { role: 'SISWA', deletedAt: null, isActive: true },
+      where: { role: 'SISWA', isActive: true },
     }),
     prisma.user.count({
-      where: { role: 'GURU_BK', deletedAt: null, isActive: true },
+      where: { role: 'GURU_BK', isActive: true },
     }),
-    prisma.class.count({
-      where: { deletedAt: null },
-    }),
+    prisma.class.count(),
   ]);
 
   return {

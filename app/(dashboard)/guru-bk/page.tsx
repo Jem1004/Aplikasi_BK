@@ -41,8 +41,7 @@ async function getDashboardData() {
       recordedBy: teacherId,
       incidentDate: {
         gte: startOfMonth,
-      },
-      deletedAt: null,
+      }
     },
   });
 
@@ -50,24 +49,21 @@ async function getDashboardData() {
   const pendingAppointmentsCount = await prisma.appointment.count({
     where: {
       counselorId: teacherId,
-      status: 'PENDING',
-      deletedAt: null,
+      status: 'PENDING'
     },
   });
 
   // Get journals count
   const journalsCount = await prisma.counselingJournal.count({
     where: {
-      counselorId: teacherId,
-      deletedAt: null,
+      counselorId: teacherId
     },
   });
 
   // Get recent violations for display
   const recentViolations = await prisma.violation.findMany({
     where: {
-      recordedBy: teacherId,
-      deletedAt: null,
+      recordedBy: teacherId
     },
     include: {
       student: {

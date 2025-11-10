@@ -80,10 +80,13 @@ async function checkWaliKelasAuth() {
     };
   }
 
-  // Get the class assigned to this homeroom teacher
+  // Get the class assigned to this homeroom teacher for active academic year
   const homeroomAssignment = await prisma.classHomeroomTeacher.findFirst({
     where: {
       teacherId: session.user.teacherId,
+      academicYear: {
+        isActive: true,
+      },
     },
     include: {
       class: true,
@@ -93,7 +96,7 @@ async function checkWaliKelasAuth() {
   if (!homeroomAssignment) {
     return {
       success: false as const,
-      error: 'Anda belum ditugaskan sebagai wali kelas',
+      error: 'Anda belum ditugaskan sebagai wali kelas untuk tahun ajaran aktif',
     };
   }
 
@@ -138,16 +141,12 @@ export async function getMyClassStudents(): Promise<
     const students = await prisma.student.findMany({
       where: {
         classId,
-        deletedAt: null,
       },
       include: {
         user: true,
         class: true,
         violations: {
-          where: {
-            deletedAt: null,
-          },
-          include: {
+                    include: {
             violationType: true,
           },
         },
@@ -202,8 +201,7 @@ export async function getStudentViolationHistory(
     const violations = await prisma.violation.findMany({
       where: {
         studentId,
-        deletedAt: null,
-      },
+              },
       include: {
         student: {
           include: {
@@ -323,22 +321,17 @@ export async function getClassStatistics(): Promise<
     const totalStudents = await prisma.student.count({
       where: {
         classId,
-        deletedAt: null,
-      },
+              },
     });
 
     // Get all violations for students in this class
     const students = await prisma.student.findMany({
       where: {
         classId,
-        deletedAt: null,
-      },
+              },
       include: {
         violations: {
-          where: {
-            deletedAt: null,
-          },
-          include: {
+                    include: {
             violationType: true,
           },
         },

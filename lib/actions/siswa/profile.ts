@@ -108,8 +108,7 @@ export async function getMyProfile(): Promise<ActionResponse<StudentProfile>> {
     // Fetch student profile with related data
     const student = await prisma.student.findUnique({
       where: {
-        id: studentId,
-        deletedAt: null,
+        id: studentId
       },
       include: {
         user: true,
@@ -234,8 +233,7 @@ export async function getMyViolations(): Promise<
     // Fetch violations (read-only)
     const violations = await prisma.violation.findMany({
       where: {
-        studentId,
-        deletedAt: null,
+        studentId
       },
       include: {
         violationType: true,
@@ -286,8 +284,7 @@ export async function getMyViolationSummary(): Promise<
     // Fetch all violations
     const violations = await prisma.violation.findMany({
       where: {
-        studentId,
-        deletedAt: null,
+        studentId
       },
       include: {
         violationType: true,

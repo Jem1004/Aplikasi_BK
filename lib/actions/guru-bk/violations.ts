@@ -247,7 +247,7 @@ export async function updateViolation(
       where: { id },
     });
 
-    if (!existingViolation || existingViolation.deletedAt) {
+    if (!existingViolation) {
       return {
         success: false,
         error: 'Data pelanggaran tidak ditemukan',
@@ -353,7 +353,7 @@ export async function deleteViolation(id: string): Promise<ActionResponse> {
       where: { id },
     });
 
-    if (!violation || violation.deletedAt) {
+    if (!violation) {
       return {
         success: false,
         error: 'Data pelanggaran tidak ditemukan',
@@ -370,12 +370,9 @@ export async function deleteViolation(id: string): Promise<ActionResponse> {
     // Get session for audit log
     const session = await auth();
 
-    // Soft delete violation
-    await prisma.violation.update({
+    // Permanently delete violation
+    await prisma.violation.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
     });
 
     // Log audit event
@@ -425,8 +422,7 @@ export async function getViolationById(
     const violation = await prisma.violation.findUnique({
       where: {
         id,
-        deletedAt: null,
-      },
+              },
       include: {
         student: {
           include: {
@@ -501,8 +497,7 @@ export async function getStudentViolations(
     const violations = await prisma.violation.findMany({
       where: {
         studentId,
-        deletedAt: null,
-      },
+              },
       include: {
         student: {
           include: {
@@ -563,8 +558,7 @@ export async function getMyStudents(): Promise<
             class: true,
             violations: {
               where: {
-                deletedAt: null,
-              },
+                              },
               include: {
                 violationType: true,
               },
@@ -625,8 +619,7 @@ export async function getStudentViolationSummary(
     const violations = await prisma.violation.findMany({
       where: {
         studentId,
-        deletedAt: null,
-      },
+              },
       include: {
         violationType: true,
       },

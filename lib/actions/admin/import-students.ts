@@ -168,8 +168,7 @@ export async function importStudents(
         if (validatedData.className) {
           const classData = await prisma.class.findFirst({
             where: {
-              name: validatedData.className,
-              deletedAt: null,
+              name: validatedData.className
             },
           });
 

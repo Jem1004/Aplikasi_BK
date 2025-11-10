@@ -30,8 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Search } from 'lucide-react';
-import { deleteUser } from '@/lib/actions/admin/users';
+import { Pencil, Trash2, Search, RotateCcw, Users } from 'lucide-react';
+import Link from 'next/link';
+import { deleteUser, reactivateUser } from '@/lib/actions/admin/users';
 import { useToast } from '@/hooks/use-toast';
 import { Role } from '@prisma/client';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
@@ -79,11 +80,15 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
   const [users, setUsers] = useState(initialUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [reactivateDialogOpen, setReactivateDialogOpen] = useState(false);
+  const [userToReactivate, setUserToReactivate] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState(false);
 
-  // Filter users based on search and role
+  // Filter users based on search, role, and status
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,8 +96,11 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
       user.username.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && user.isActive) ||
+      (statusFilter === 'inactive' && !user.isActive);
 
-    return matchesSearch && matchesRole;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const handleEdit = (userId: string) => {
@@ -113,10 +121,12 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
     if (result.success) {
       toast({
         title: 'Berhasil',
-        description: 'Pengguna berhasil dihapus',
+        description: 'Pengguna berhasil dinonaktifkan',
       });
-      // Remove user from local state
-      setUsers(users.filter((u) => u.id !== userToDelete));
+      // Update user in local state instead of removing
+      setUsers(users.map((u) =>
+        u.id === userToDelete ? { ...u, isActive: false } : u
+      ));
       router.refresh();
     } else {
       toast({
@@ -129,6 +139,40 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
     setIsDeleting(false);
     setDeleteDialogOpen(false);
     setUserToDelete(null);
+  };
+
+  const handleReactivateClick = (userId: string) => {
+    setUserToReactivate(userId);
+    setReactivateDialogOpen(true);
+  };
+
+  const handleReactivateConfirm = async () => {
+    if (!userToReactivate) return;
+
+    setIsReactivating(true);
+    const result = await reactivateUser(userToReactivate);
+
+    if (result.success) {
+      toast({
+        title: 'Berhasil',
+        description: 'Pengguna berhasil diaktifkan kembali',
+      });
+      // Update user in local state
+      setUsers(users.map((u) =>
+        u.id === userToReactivate ? { ...u, isActive: true } : u
+      ));
+      router.refresh();
+    } else {
+      toast({
+        title: 'Gagal',
+        description: result.error || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
+    }
+
+    setIsReactivating(false);
+    setReactivateDialogOpen(false);
+    setUserToReactivate(null);
   };
 
   return (
@@ -145,7 +189,7 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="Filter role" />
           </SelectTrigger>
           <SelectContent>
@@ -154,6 +198,16 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
             <SelectItem value="GURU_BK">Guru BK</SelectItem>
             <SelectItem value="WALI_KELAS">Wali Kelas</SelectItem>
             <SelectItem value="SISWA">Siswa</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Nonaktif</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -212,29 +266,43 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <div className="flex justify-end gap-2">
-                      <ResetPasswordDialog 
+                      <ResetPasswordDialog
                         userId={user.id}
                         userName={user.fullName}
                         userRole={roleLabels[user.role]}
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(user.id)}
-                        className="min-w-[44px] min-h-[44px]"
-                        aria-label={`Edit ${user.fullName}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(user.id)}
-                        className="min-w-[44px] min-h-[44px]"
-                        aria-label={`Hapus ${user.fullName}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {user.isActive ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(user.id)}
+                            className="min-w-[44px] min-h-[44px]"
+                            aria-label={`Edit ${user.fullName}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(user.id)}
+                            className="min-w-[44px] min-h-[44px]"
+                            aria-label={`Nonaktifkan ${user.fullName}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleReactivateClick(user.id)}
+                            className="min-w-[44px] min-h-[44px]"
+                            aria-label={`Aktifkan ${user.fullName}`}
+                        >
+                          <RotateCcw className="h-4 w-4 text-green-600" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -244,13 +312,26 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
         </Table>
       </div>
 
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-2 items-center justify-between pt-4 border-t">
+        <div className="text-sm text-muted-foreground">
+          Menampilkan {filteredUsers.length} dari {users.length} pengguna
+        </div>
+        <Link href="/admin/users/trash">
+          <Button variant="outline" className="min-h-[44px]">
+            <Users className="mr-2 h-4 w-4" />
+            Lihat Pengguna Terhapus
+          </Button>
+        </Link>
+      </div>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Pengguna</AlertDialogTitle>
+            <AlertDialogTitle>Nonaktifkan Pengguna</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menonaktifkan pengguna ini? Pengguna tidak akan bisa login tetapi data tetap tersimpan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -260,7 +341,29 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Menghapus...' : 'Hapus'}
+              {isDeleting ? 'Menonaktifkan...' : 'Nonaktifkan'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reactivate Confirmation Dialog */}
+      <AlertDialog open={reactivateDialogOpen} onOpenChange={setReactivateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aktifkan Kembali Pengguna</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin mengaktifkan kembali pengguna ini? Pengguna akan bisa login kembali.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isReactivating}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReactivateConfirm}
+              disabled={isReactivating}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isReactivating ? 'Mengaktifkan...' : 'Aktifkan'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -54,8 +54,7 @@ export const metadata = {
 async function getAcademicYears() {
   const academicYears = await prisma.academicYear.findMany({
     where: {
-      deletedAt: null,
-    },
+      },
     orderBy: {
       startDate: 'desc',
     },
@@ -72,8 +71,7 @@ async function getAcademicYears() {
 async function getClasses() {
   const classes = await prisma.class.findMany({
     where: {
-      deletedAt: null,
-    },
+      },
     orderBy: [
       {
         gradeLevel: 'asc',

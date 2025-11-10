@@ -19,7 +19,6 @@ const UserForm = dynamic(() => import('@/components/admin/UserForm').then(mod =>
 
 async function getClasses() {
   const classes = await prisma.class.findMany({
-    where: { deletedAt: null },
     select: {
       id: true,
       name: true,

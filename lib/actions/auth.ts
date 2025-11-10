@@ -59,8 +59,7 @@ export async function signIn(
           { email: validatedIdentifier },
           { username: validatedIdentifier },
         ],
-        isActive: true,
-        deletedAt: null,
+        isActive: true
       },
       include: {
         teacher: true,

@@ -58,8 +58,15 @@ export function SimpleLoginForm() {
       console.log('SignIn result:', result);
 
       if (result?.error) {
-        console.error('Sign in error:', result.error);
-        setError('Login gagal. Silakan periksa kredensial Anda.');
+        // Log as warning instead of error (this is expected for wrong credentials)
+        console.warn('Sign in failed:', result.error);
+        
+        // Provide more specific error message
+        if (result.error === 'CredentialsSignin') {
+          setError('Email/username atau password salah. Silakan coba lagi.');
+        } else {
+          setError('Login gagal. Silakan periksa kredensial Anda.');
+        }
       } else if (result?.ok) {
         // Login successful, redirect based on user role
         // Add delay to ensure session is properly established

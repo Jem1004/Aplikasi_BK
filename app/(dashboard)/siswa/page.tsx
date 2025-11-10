@@ -47,8 +47,7 @@ async function getDashboardData() {
       studentId,
       status: {
         in: ['PENDING', 'APPROVED'],
-      },
-      deletedAt: null,
+      }
     },
     include: {
       counselor: {

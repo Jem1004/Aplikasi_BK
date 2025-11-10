@@ -24,6 +24,7 @@ import {
   Settings,
   BookOpen,
   School,
+  Trash2,
 } from "lucide-react";
 
 interface SchoolInfo {
@@ -104,13 +105,26 @@ export function Sidebar({
   useEffect(() => {
     const fetchSchoolInfo = async () => {
       try {
-        const response = await fetch('/api/school-info');
+        const response = await fetch('/api/school-info', {
+          credentials: 'include', // Ensure cookies are sent with the request
+        });
+
         if (response.ok) {
           const data = await response.json();
           setSchoolInfo(data);
+        } else if (response.status === 401 || response.redirected) {
+          // Handle authentication errors or redirects gracefully
+          console.log('School info requires authentication or redirect detected - using fallback');
+        } else {
+          console.error('Failed to fetch school info:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Failed to fetch school info:', error);
+        // Don't log JSON parsing errors as they're expected when authentication fails
+        if (error instanceof SyntaxError && error.message.includes('JSON')) {
+          console.log('School info fetch returned non-JSON response, likely due to authentication');
+        } else {
+          console.error('Failed to fetch school info:', error);
+        }
       } finally {
         setIsLoading(false);
       }

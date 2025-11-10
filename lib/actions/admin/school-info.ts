@@ -126,7 +126,7 @@ export async function upsertSchoolInfo(
     let isUpdate = false;
 
     if (existingSchoolInfo) {
-      // Update existing school info
+      // Update existing school info - preserve logoPath if not explicitly changed
       isUpdate = true;
       result = await prisma.schoolInfo.update({
         where: { id: existingSchoolInfo.id },
@@ -138,6 +138,8 @@ export async function upsertSchoolInfo(
           website: validatedData.website || null,
           principalName: validatedData.principalName,
           principalNip: validatedData.principalNip,
+          // Don't update logoPath here - logo upload is handled separately
+          logoPath: existingSchoolInfo.logoPath, // Preserve existing logo
         },
       });
 
@@ -155,6 +157,7 @@ export async function upsertSchoolInfo(
           website: existingSchoolInfo.website,
           principalName: existingSchoolInfo.principalName,
           principalNip: existingSchoolInfo.principalNip,
+          logoPath: existingSchoolInfo.logoPath,
         }),
         newValues: sanitizeForAudit({
           name: result.name,
@@ -164,6 +167,7 @@ export async function upsertSchoolInfo(
           website: result.website,
           principalName: result.principalName,
           principalNip: result.principalNip,
+          logoPath: result.logoPath,
         }),
       });
     } else {
