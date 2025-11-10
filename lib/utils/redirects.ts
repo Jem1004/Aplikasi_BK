@@ -15,7 +15,7 @@ interface RedirectOptions {
  * across all CRUD operations in the application.
  */
 export class NavigationHelper {
-  private router: useRouter;
+  private router: ReturnType<typeof useRouter>;
   private toast: any;
 
   constructor(router: ReturnType<typeof useRouter>, toast: ReturnType<typeof useToast>['toast']) {

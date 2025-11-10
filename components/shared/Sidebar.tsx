@@ -195,9 +195,14 @@ export function Sidebar({
               {/* Desktop minimize button */}
               <button
                 onClick={onToggleMinimized}
-                className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-all duration-200 hover:scale-105"
+                className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 group"
+                aria-label={isMinimized ? "Perluas sidebar" : "Minimize sidebar"}
+                title={`${isMinimized ? "Perluas sidebar" : "Minimize sidebar"} (Ctrl/Cmd+M)`}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className={cn(
+                  "h-5 w-5 transition-transform duration-200",
+                  isMinimized && "rotate-180"
+                )} />
               </button>
 
               {/* Mobile close button */}
@@ -213,7 +218,9 @@ export function Sidebar({
           {isMinimized && (
             <button
               onClick={onToggleMinimized}
-              className="hidden md:flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 hover:scale-105 shadow-lg border border-white/30"
+              className="hidden md:flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 hover:scale-105 shadow-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 group"
+              aria-label="Perluas sidebar"
+              title="Perluas sidebar (Ctrl/Cmd+M)"
             >
               <BookOpen className="h-6 w-6 text-white" />
             </button>

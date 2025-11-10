@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ViolationCategory } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -442,7 +442,10 @@ async function main() {
 
     if (!existing) {
       await prisma.violationType.create({
-        data: violationType
+        data: {
+          ...violationType,
+          type: violationType.type as ViolationCategory
+        }
       });
       createdViolationTypes++;
     }

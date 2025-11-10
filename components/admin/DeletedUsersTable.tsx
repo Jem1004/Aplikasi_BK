@@ -51,7 +51,7 @@ type DeletedUser = {
   fullName: string;
   role: Role;
   isActive: boolean;
-  deletedAt: Date;
+  deletedAt: Date | null;
   createdAt: Date;
   teacher?: {
     nip: string | null;
@@ -291,10 +291,10 @@ export function DeletedUsersTable({ users: initialUsers }: DeletedUsersTableProp
                   <TableCell className="whitespace-nowrap">
                     <div className="text-sm">
                       <div className="font-medium">
-                        {format(new Date(user.deletedAt), 'dd MMM yyyy', { locale: id })}
+                        {user.deletedAt ? format(new Date(user.deletedAt), 'dd MMM yyyy', { locale: id }) : 'N/A'}
                       </div>
                       <div className="text-muted-foreground text-xs">
-                        {format(new Date(user.deletedAt), 'HH:mm', { locale: id })}
+                        {user.deletedAt ? format(new Date(user.deletedAt), 'HH:mm', { locale: id }) : ''}
                       </div>
                     </div>
                   </TableCell>

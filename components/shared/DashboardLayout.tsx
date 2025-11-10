@@ -14,7 +14,20 @@ export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Handle responsive sidebar behavior
+  // Load sidebar preference from localStorage on mount
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('sidebar-minimized');
+    if (savedPreference !== null) {
+      setSidebarMinimized(JSON.parse(savedPreference));
+    }
+  }, []);
+
+  // Save sidebar preference to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('sidebar-minimized', JSON.stringify(sidebarMinimized));
+  }, [sidebarMinimized]);
+
+  // Handle responsive sidebar behavior and keyboard shortcuts
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
@@ -33,6 +46,20 @@ export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps
       }
     };
 
+    // Handle keyboard shortcuts
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl/Cmd + M to toggle sidebar minimize (desktop only)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'm' && !isMobile) {
+        event.preventDefault();
+        setSidebarMinimized(!sidebarMinimized);
+      }
+
+      // Escape to close mobile sidebar
+      if (event.key === 'Escape' && sidebarOpen && isMobile) {
+        setSidebarOpen(false);
+      }
+    };
+
     // Initial check
     checkMobile();
 
@@ -41,8 +68,13 @@ export function DashboardLayout({ children, role, navbar }: DashboardLayoutProps
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [sidebarOpen, sidebarMinimized]);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [sidebarOpen, sidebarMinimized, isMobile]);
 
   return (
     <div className="min-h-screen bg-gray-50">

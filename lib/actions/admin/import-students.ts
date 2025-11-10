@@ -267,7 +267,7 @@ export async function importStudents(
       userId: session.user.id,
       action: AUDIT_ACTIONS.USER_CREATED, // Using existing action as closest match
       entityType: ENTITY_TYPES.USER,
-      entityId: null, // Multiple users created
+      entityId: undefined, // Multiple users created
       newValues: sanitizeForAudit({
         importedStudents: result.success,
         failedImports: result.failed,

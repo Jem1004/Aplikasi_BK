@@ -802,7 +802,11 @@ export async function bulkDeleteUsers(userIds: string[]): Promise<ActionResponse
 }>> {
   try {
     // Check authorization
-    const authCheck = await checkAdminAuth();
+    const authCheck = await checkAdminAuth<{
+      success: number;
+      failed: number;
+      errors: string[]
+    }>();
     if (!authCheck.success) {
       return authCheck.error;
     }
