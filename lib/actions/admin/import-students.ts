@@ -6,6 +6,12 @@ import { hash } from 'bcryptjs';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import * as XLSX from 'xlsx';
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+  sanitizeForAudit,
+} from '@/lib/audit/audit-logger';
 
 // Validation schema for student data
 const studentSchema = z.object({
@@ -255,6 +261,19 @@ export async function importStudents(
         }
       }
     }
+
+    // Log audit event for import operation
+    await logAuditEvent({
+      userId: session.user.id,
+      action: AUDIT_ACTIONS.USER_CREATED, // Using existing action as closest match
+      entityType: ENTITY_TYPES.USER,
+      entityId: null, // Multiple users created
+      newValues: sanitizeForAudit({
+        importedStudents: result.success,
+        failedImports: result.failed,
+        totalRows: data.length,
+      }),
+    });
 
     return {
       success: true,

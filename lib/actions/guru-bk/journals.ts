@@ -294,12 +294,9 @@ export async function deleteCounselingJournal(
       return { success: false, error: ERROR_MESSAGES.PERMISSION_DENIED };
     }
 
-    // Soft delete
-    await prisma.counselingJournal.update({
+    // Hard delete (since schema doesn't have deletedAt)
+    await prisma.counselingJournal.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
     });
 
     // Log audit event

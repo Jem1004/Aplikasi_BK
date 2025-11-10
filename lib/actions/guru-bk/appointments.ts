@@ -373,7 +373,7 @@ export async function rescheduleAppointment(
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         counselorId: teacherId,
-        appointmentDate: new Date(data.appointmentDate)
+        appointmentDate: new Date(data.appointmentDate),
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },
@@ -526,7 +526,7 @@ export async function getAvailableSlots(
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         counselorId: teacherId,
-        appointmentDate: new Date(date)
+        appointmentDate: new Date(date),
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },

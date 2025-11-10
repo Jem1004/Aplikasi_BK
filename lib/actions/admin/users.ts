@@ -408,40 +408,13 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
       };
     }
 
-    // Soft delete user and related records
-    await prisma.$transaction(async (tx) => {
-      // Soft delete user
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-        },
-      });
-
-      // Soft delete teacher if exists
-      const teacher = await tx.teacher.findUnique({
-        where: { userId: userId },
-      });
-
-      if (teacher) {
-        await tx.teacher.update({
-          where: { userId: userId },
-          data: { deletedAt: new Date() },
-        });
-      }
-
-      // Soft delete student if exists
-      const student = await tx.student.findUnique({
-        where: { userId: userId },
-      });
-
-      if (student) {
-        await tx.student.update({
-          where: { userId: userId },
-          data: { deletedAt: new Date() },
-        });
-      }
+    // Soft delete user - only User model has deletedAt field
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      },
     });
 
     // Log audit event
@@ -455,6 +428,12 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        isActive: user.isActive,
+        deletedAt: user.deletedAt,
+      }),
+      newValues: sanitizeForAudit({
+        isActive: false,
+        deletedAt: new Date(),
       }),
     });
 
@@ -516,25 +495,8 @@ export async function reactivateUser(userId: string): Promise<ActionResponse> {
         },
       });
 
-      // Reactivate teacher if exists and was deleted
-      if (user.teacher) {
-        await tx.teacher.update({
-          where: { userId: userId },
-          data: {
-            deletedAt: null,  // Clear deletion timestamp
-          },
-        });
-      }
-
-      // Reactivate student if exists and was deleted
-      if (user.student) {
-        await tx.student.update({
-          where: { userId: userId },
-          data: {
-            deletedAt: null,  // Clear deletion timestamp
-          },
-        });
-      }
+      // Teacher and Student models don't have deletedAt field
+      // Only User model has soft delete capability
     });
 
     // Log audit event
@@ -825,6 +787,121 @@ export async function getUserById(
     return {
       success: false,
       error: 'Terjadi kesalahan. Silakan coba lagi',
+    };
+  }
+}
+
+/**
+ * Bulk delete multiple users
+ * Admin only
+ */
+export async function bulkDeleteUsers(userIds: string[]): Promise<ActionResponse<{
+  success: number;
+  failed: number;
+  errors: string[]
+}>> {
+  try {
+    // Check authorization
+    const authCheck = await checkAdminAuth();
+    if (!authCheck.success) {
+      return authCheck.error;
+    }
+
+    const session = await auth();
+    const currentUserId = session?.user?.id;
+
+    if (!currentUserId) {
+      return {
+        success: false,
+        error: 'Session tidak valid',
+      };
+    }
+
+    // Prevent deleting own account
+    if (userIds.includes(currentUserId)) {
+      return {
+        success: false,
+        error: 'Anda tidak dapat menghapus akun sendiri dalam bulk delete',
+      };
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    // Process each user individually for better error handling
+    for (const userId of userIds) {
+      try {
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!user) {
+          results.failed++;
+          results.errors.push(`User dengan ID ${userId} tidak ditemukan`);
+          continue;
+        }
+
+        if (user.deletedAt) {
+          results.failed++;
+          results.errors.push(`User ${user.fullName} sudah dihapus sebelumnya`);
+          continue;
+        }
+
+        // Soft delete user (same logic as single delete)
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            isActive: false,
+            deletedAt: new Date(),
+          },
+        });
+
+        // Log audit event
+        await logAuditEvent({
+          userId: currentUserId,
+          action: AUDIT_ACTIONS.USER_DELETED,
+          entityType: ENTITY_TYPES.USER,
+          entityId: userId,
+          oldValues: sanitizeForAudit({
+            isActive: user.isActive,
+            deletedAt: user.deletedAt,
+          }),
+          newValues: sanitizeForAudit({
+            isActive: false,
+            deletedAt: new Date(),
+          }),
+        });
+
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        const errorMessage = mapErrorToMessage(error);
+        results.errors.push(`Gagal menghapus user ${userId}: ${errorMessage}`);
+        console.error(`Bulk delete user ${userId} error:`, error);
+      }
+    }
+
+    if (results.success === 0) {
+      return {
+        success: false,
+        error: 'Semua user gagal dihapus',
+        data: results,
+      };
+    }
+
+    return {
+      success: true,
+      data: results,
+    };
+  } catch (error) {
+    console.error('Bulk delete users error:', error);
+    return {
+      success: false,
+      error: 'Terjadi kesalahan saat menghapus user secara bulk',
     };
   }
 }

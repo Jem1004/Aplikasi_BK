@@ -30,9 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Search, RotateCcw, Users } from 'lucide-react';
+import { Pencil, Trash2, Search, RotateCcw, Users, CheckSquare, Square } from 'lucide-react';
 import Link from 'next/link';
-import { deleteUser, reactivateUser } from '@/lib/actions/admin/users';
+import { deleteUser, reactivateUser, bulkDeleteUsers } from '@/lib/actions/admin/users';
 import { useToast } from '@/hooks/use-toast';
 import { Role } from '@prisma/client';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
@@ -87,6 +87,9 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
   const [reactivateDialogOpen, setReactivateDialogOpen] = useState(false);
   const [userToReactivate, setUserToReactivate] = useState<string | null>(null);
   const [isReactivating, setIsReactivating] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Filter users based on search, role, and status
   const filteredUsers = users.filter((user) => {
@@ -175,6 +178,82 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
     setUserToReactivate(null);
   };
 
+  // Bulk selection handlers
+  const handleSelectUser = (userId: string) => {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === filteredUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredUsers.map(user => user.id)));
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedUsers.size === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedUsers.size === 0) return;
+
+    setIsBulkDeleting(true);
+
+    try {
+      const userIds = Array.from(selectedUsers);
+      const result = await bulkDeleteUsers(userIds);
+
+      if (result.success) {
+        toast({
+          title: 'Berhasil',
+          description: `${result.data!.success} pengguna berhasil dinonaktifkan${result.data!.failed > 0 ? ` dan ${result.data!.failed} gagal` : ''}`,
+        });
+
+        // Update users in local state
+        setUsers(users.map((u) =>
+          userIds.includes(u.id) ? { ...u, isActive: false } : u
+        ));
+        setSelectedUsers(new Set());
+        router.refresh();
+      } else {
+        toast({
+          title: 'Gagal',
+          description: result.error || 'Terjadi kesalahan saat menonaktifkan pengguna',
+          variant: 'destructive',
+        });
+
+        // Show detailed errors if available
+        if (result.data?.errors && result.data.errors.length > 0) {
+          console.error('Bulk delete errors:', result.data.errors);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: 'Gagal',
+        description: 'Terjadi kesalahan saat menonaktifkan pengguna',
+        variant: 'destructive',
+      });
+    }
+
+    setIsBulkDeleting(false);
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const isAllSelected = filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length;
+  const hasActiveUsersSelected = Array.from(selectedUsers).some(userId =>
+    users.find(user => user.id === userId)?.isActive
+  );
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -212,11 +291,53 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
         </Select>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.size > 0 && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-blue-900">
+              {selectedUsers.size} pengguna dipilih
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDeleteClick}
+              disabled={!hasActiveUsersSelected}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Nonaktifkan ({selectedUsers.size})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedUsers(new Set())}
+            >
+              Batal Pilih
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table - Desktop view with horizontal scroll */}
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <button
+                  onClick={handleSelectAll}
+                  className="flex items-center justify-center w-full"
+                  title={isAllSelected ? "Batalkan pilih semua" : "Pilih semua"}
+                >
+                  {isAllSelected ? (
+                    <CheckSquare className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <Square className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="whitespace-nowrap">Nama</TableHead>
               <TableHead className="whitespace-nowrap">Email</TableHead>
               <TableHead className="whitespace-nowrap">Username</TableHead>
@@ -229,13 +350,26 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Tidak ada data pengguna
                 </TableCell>
               </TableRow>
             ) : (
               filteredUsers.map((user) => (
                 <TableRow key={user.id}>
+                  <TableCell>
+                    <button
+                      onClick={() => handleSelectUser(user.id)}
+                      className="flex items-center justify-center w-full"
+                      title="Pilih/batal pilih pengguna"
+                    >
+                      {selectedUsers.has(user.id) ? (
+                        <CheckSquare className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Square className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </TableCell>
                   <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
                   <TableCell className="whitespace-nowrap">{user.email}</TableCell>
                   <TableCell className="whitespace-nowrap">{user.username}</TableCell>
@@ -364,6 +498,42 @@ export function UserManagementTable({ users: initialUsers }: UserManagementTable
               className="bg-green-600 hover:bg-green-700"
             >
               {isReactivating ? 'Mengaktifkan...' : 'Aktifkan'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Nonaktifkan {selectedUsers.size} Pengguna</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menonaktifkan {selectedUsers.size} pengguna yang dipilih?
+              Pengguna tidak akan bisa login tetapi data tetap tersimpan.
+            </AlertDialogDescription>
+            <div className="mt-4">
+              <strong className="text-sm">Daftar pengguna:</strong>
+              <ul className="mt-2 space-y-1 text-sm">
+                {Array.from(selectedUsers).map(userId => {
+                  const user = users.find(u => u.id === userId);
+                  return user ? (
+                    <li key={userId}>
+                      • {user.fullName} ({user.email}) - {roleLabels[user.role]}
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? 'Menonaktifkan...' : `Nonaktifkan ${selectedUsers.size} Pengguna`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

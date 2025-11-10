@@ -557,8 +557,6 @@ export async function getMyStudents(): Promise<
             user: true,
             class: true,
             violations: {
-              where: {
-                              },
               include: {
                 violationType: true,
               },

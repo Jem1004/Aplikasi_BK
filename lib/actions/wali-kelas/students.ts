@@ -146,7 +146,7 @@ export async function getMyClassStudents(): Promise<
         user: true,
         class: true,
         violations: {
-                    include: {
+          include: {
             violationType: true,
           },
         },
@@ -321,17 +321,17 @@ export async function getClassStatistics(): Promise<
     const totalStudents = await prisma.student.count({
       where: {
         classId,
-              },
+      },
     });
 
     // Get all violations for students in this class
     const students = await prisma.student.findMany({
       where: {
         classId,
-              },
+      },
       include: {
         violations: {
-                    include: {
+          include: {
             violationType: true,
           },
         },

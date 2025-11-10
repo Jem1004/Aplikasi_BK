@@ -8,9 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
 
-// Cache appointments for 30 seconds
-// Appointments change frequently
-export const revalidate = 30;
+// No caching for appointments to ensure real-time updates
+export const revalidate = 0;
 
 export const metadata = {
   title: 'Janji Temu Saya | Aplikasi BK',

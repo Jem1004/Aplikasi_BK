@@ -5,13 +5,28 @@ import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { ActionResponse } from '@/types';
 import { Prisma, AppointmentStatus } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
 
 // Validation schemas
 const createAppointmentSchema = z.object({
   appointmentDate: z.string().min(1, 'Tanggal harus diisi'),
-  startTime: z.string().min(1, 'Waktu mulai harus diisi'),
-  endTime: z.string().min(1, 'Waktu selesai harus diisi'),
+  startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Format waktu mulai tidak valid (HH:MM)'),
+  endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Format waktu selesai tidak valid (HH:MM)'),
   reason: z.string().min(10, 'Alasan harus diisi minimal 10 karakter'),
+}).refine((data) => {
+  // Check if date is not in the past
+  const appointmentDate = new Date(data.appointmentDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return appointmentDate >= today;
+}, {
+  message: 'Tanggal janji temu tidak boleh di masa lalu',
+}).refine((data) => {
+  const start = new Date(`1970-01-01T${data.startTime}:00`);
+  const end = new Date(`1970-01-01T${data.endTime}:00`);
+  return end > start;
+}, {
+  message: 'Waktu selesai harus setelah waktu mulai',
 });
 
 // Type for appointment with counselor data
@@ -136,30 +151,33 @@ export async function createAppointment(
     const counselorId = assignment.counselorId;
 
     // Check if the time slot is still available
+    const newStartTime = new Date(`1970-01-01T${data.startTime}:00`);
+    const newEndTime = new Date(`1970-01-01T${data.endTime}:00`);
+
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         counselorId: counselorId,
-        appointmentDate: new Date(data.appointmentDate)
+        appointmentDate: new Date(data.appointmentDate),
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },
         OR: [
           {
             AND: [
-              { startTime: { lte: data.startTime } },
-              { endTime: { gt: data.startTime } },
+              { startTime: { lte: newStartTime } },
+              { endTime: { gt: newStartTime } },
             ],
           },
           {
             AND: [
-              { startTime: { lt: data.endTime } },
-              { endTime: { gte: data.endTime } },
+              { startTime: { lt: newEndTime } },
+              { endTime: { gte: newEndTime } },
             ],
           },
           {
             AND: [
-              { startTime: { gte: data.startTime } },
-              { endTime: { lte: data.endTime } },
+              { startTime: { gte: newStartTime } },
+              { endTime: { lte: newEndTime } },
             ],
           },
         ],
@@ -179,12 +197,15 @@ export async function createAppointment(
         studentId: studentId,
         counselorId: counselorId,
         appointmentDate: new Date(data.appointmentDate),
-        startTime: data.startTime,
-        endTime: data.endTime,
+        startTime: new Date(`1970-01-01T${data.startTime}:00`),
+        endTime: new Date(`1970-01-01T${data.endTime}:00`),
         reason: data.reason,
         status: 'PENDING',
       },
     });
+
+    // Invalidate cache for appointments page
+    revalidatePath('/siswa/appointments');
 
     return {
       success: true,
@@ -192,6 +213,18 @@ export async function createAppointment(
     };
   } catch (error) {
     console.error('Create appointment error:', error);
+
+    // Handle specific errors
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
+    // Check for Prisma errors
+    if (typeof error === 'object' && error !== null) {
+      console.error('Prisma error details:', JSON.stringify(error, null, 2));
+    }
+
     return {
       success: false,
       error: 'Terjadi kesalahan. Silakan coba lagi',
@@ -248,6 +281,9 @@ export async function cancelAppointment(
         status: 'CANCELLED',
       },
     });
+
+    // Invalidate cache for appointments page
+    revalidatePath('/siswa/appointments');
 
     return {
       success: true,
@@ -427,7 +463,7 @@ export async function getCounselorAvailableSlots(
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         counselorId: counselorId,
-        appointmentDate: new Date(date)
+        appointmentDate: new Date(date),
         status: {
           in: ['PENDING', 'APPROVED', 'RESCHEDULED'],
         },
