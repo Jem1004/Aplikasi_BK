@@ -546,7 +546,7 @@ export async function getMyStudents(): Promise<
 
     const teacherId = authCheck.teacherId;
 
-    // Get assigned students
+    // Get assigned students with deduplication
     const assignments = await prisma.studentCounselorAssignment.findMany({
       where: {
         counselorId: teacherId,
@@ -566,7 +566,16 @@ export async function getMyStudents(): Promise<
       },
     });
 
-    const students = assignments.map((assignment) => assignment.student);
+    // Remove duplicate students by using a Map with student ID as key
+    const uniqueStudentsMap = new Map();
+    assignments.forEach((assignment) => {
+      const student = assignment.student;
+      if (!uniqueStudentsMap.has(student.id)) {
+        uniqueStudentsMap.set(student.id, student);
+      }
+    });
+
+    const students = Array.from(uniqueStudentsMap.values());
 
     return {
       success: true,
